@@ -141,8 +141,8 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             existingConnections.add(connection.getSourceNeuron().getId() + "->" + connection.getTargetNeuron().getId());
         }
 
-        int maxTries = 80;
-        for (int i = 0; i < maxTries; i++) {
+        int maxAttempts = 80;
+        for (int i = 0; i < maxAttempts; i++) {
             NeuronGene fromNeuron = neuronList.get(random.nextInt(neuronList.size()));
             NeuronGene toNeuron = neuronList.get(random.nextInt(neuronList.size()));
             
@@ -152,6 +152,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             
             String connectionSignature = fromNeuron.getId() + "->" + toNeuron.getId();
             if (!existingConnections.contains(connectionSignature)) {
+                existingConnections.add(connectionSignature);
                 int uniqueInnovation = connectionCounter++;
                 innovations.add(new InnovationImpl(uniqueInnovation));
                 ConnectionGene newConn = new ConnectionGene(fromNeuron, toNeuron, random.nextGaussian() * 0.5, true, uniqueInnovation);
