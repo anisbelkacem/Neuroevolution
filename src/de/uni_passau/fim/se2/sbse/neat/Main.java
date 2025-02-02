@@ -144,18 +144,8 @@ public class Main implements Callable<Integer> {
      * @param maxGenerations The maximum number of generations to run the algorithm for.
      * @return The initialised Neat algorithm.
      */
-    public static Neuroevolution initialiseNeat(int populationSize, int maxGenerations, Tasks task) {
-        double mutationRate = 0.2;
-        double crossoverRate = 0.8;
-        Random random = new Random();
-        int inputSize;
-        int outputSize = 1;  
-        if (task == Tasks.XOR) {
-            inputSize = 2;
-        } else { 
-            inputSize = 4;
-        }
-        return new NEAT(populationSize, maxGenerations, mutationRate, crossoverRate, random, inputSize, outputSize);
+    public static Neuroevolution initialiseNeat(int populationSize, int maxGenerations) {
+        return new NEAT(populationSize, maxGenerations);
     }
     
     

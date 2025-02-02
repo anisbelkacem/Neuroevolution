@@ -13,9 +13,6 @@ public class NEAT implements Neuroevolution {
 
     private final int populationSize;
     private final int maxGenerations;
-    private final double mutationRate;
-    private final double crossoverRate;
-    private final Random random;
     private final Set<Innovation> innovations;
     
     private List<NetworkChromosome> population;
@@ -24,27 +21,19 @@ public class NEAT implements Neuroevolution {
     private double COMPATIBILITY_MODIFIER = 0.3;
     private int TARGET_SPECIES_COUNT = 5;
     private final List<Species> speciesList = new ArrayList<>();
-    private final int inputSize;
-    private final int outputSize;
 
-    public NEAT(int populationSize, int maxGenerations, double mutationRate, double crossoverRate, Random random, int inputSize, int outputSize) {
+    public NEAT(int populationSize, int maxGenerations) {
         this.populationSize = populationSize;
         this.maxGenerations = maxGenerations;
-        this.mutationRate = mutationRate;
-        this.crossoverRate = crossoverRate;
-        this.random = random;
         this.innovations = new HashSet<>();
         this.population = new ArrayList<>();
         this.generation = 0;
-        this.inputSize = inputSize;
-        this.outputSize = outputSize;
-
         initializePopulation();
     }
 
     private void initializePopulation() {
         for (int i = 0; i < populationSize; i++) {
-            NetworkChromosome chromosome = new NetworkGenerator(innovations, inputSize, outputSize, random).generate();
+            NetworkChromosome chromosome = new NetworkGenerator(innovations, 2, 1, new Random()).generate();
             population.add(chromosome);
         }
     }
@@ -124,40 +113,6 @@ public class NEAT implements Neuroevolution {
         }
     }
 
-    private void reproduce() {
-        List<NetworkChromosome> newPopulation = new ArrayList<>();
-        NeatCrossover crossover = new NeatCrossover(random);
-        NeatMutation mutation = new NeatMutation(innovations, random);
-
-        while (newPopulation.size() < populationSize) {
-            NetworkChromosome parent1 = selectParent();
-            NetworkChromosome parent2 = selectParent();
-
-            NetworkChromosome offspring;
-            if (random.nextDouble() < crossoverRate) {
-                offspring = crossover.apply(parent1, parent2);
-            } else {
-                offspring = parent1;
-            }
-
-            if (random.nextDouble() < mutationRate) {
-                offspring = mutation.apply(offspring);
-            }
-
-            newPopulation.add(offspring);
-        }
-        population = newPopulation;
-    }
-
-    private NetworkChromosome selectParent() {
-        int tournamentSize = 3;
-        List<NetworkChromosome> tournament = new ArrayList<>();
-        for (int i = 0; i < tournamentSize; i++) {
-            tournament.add(population.get(random.nextInt(population.size())));
-        }
-        return Collections.max(tournament, Comparator.comparingDouble(NetworkChromosome::getFitness));
-    }
-
     @Override
     public Agent solve(Environment environment) {
         for (generation = 0; generation < maxGenerations; generation++) {
@@ -172,12 +127,46 @@ public class NEAT implements Neuroevolution {
         return getBestAgent();
     }
 
-    private Agent getBestAgent() {
-        return Collections.max(population, Comparator.comparingDouble(NetworkChromosome::getFitness));
+    private void reproduce() {
+        List<NetworkChromosome> newPopulation = new ArrayList<>();
+        NeatCrossover crossover = new NeatCrossover(new Random());
+        NeatMutation mutation = new NeatMutation(innovations, new Random());
+
+        while (newPopulation.size() < populationSize) {
+            NetworkChromosome parent1 = selectParent();
+            NetworkChromosome parent2 = selectParent();
+
+            NetworkChromosome offspring;
+            if (new Random().nextDouble() < 0.8) {
+                offspring = crossover.apply(parent1, parent2);
+            } else {
+                offspring = parent1;
+            }
+
+            if (new Random().nextDouble() < 0.2) {
+                offspring = mutation.apply(offspring);
+            }
+
+            newPopulation.add(offspring);
+        }
+        population = newPopulation;
+    }
+
+    private NetworkChromosome selectParent() {
+        int tournamentSize = 3;
+        List<NetworkChromosome> tournament = new ArrayList<>();
+        for (int i = 0; i < tournamentSize; i++) {
+            tournament.add(population.get(new Random().nextInt(population.size())));
+        }
+        return Collections.max(tournament, Comparator.comparingDouble(NetworkChromosome::getFitness));
     }
 
     private boolean isSolved(Environment environment) {
         return population.stream().anyMatch(environment::solved);
+    }
+
+    private Agent getBestAgent() {
+        return Collections.max(population, Comparator.comparingDouble(NetworkChromosome::getFitness));
     }
 
     @Override
