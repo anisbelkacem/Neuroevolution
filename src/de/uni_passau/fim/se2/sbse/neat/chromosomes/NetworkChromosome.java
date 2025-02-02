@@ -57,38 +57,45 @@ public class NetworkChromosome implements Agent {
 
     @Override
     public List<Double> getOutput(List<Double> state) {
-        Map<Integer, Double> neuron_Values = new HashMap<>();
+        List<NeuronGene> inputNeurons = layers.get(INPUT_LAYER);
 
-        List<NeuronGene> input_Neurons = layers.get(INPUT_LAYER);
-        for (int i = 0; i < input_Neurons.size(); i++) {
-            neuron_Values.put(input_Neurons.get(i).getId(), state.get(i));
+        int expectedInputSize = (int) inputNeurons.stream().filter(n -> n.getNeuronType() == NeuronType.INPUT).count();
+        if (state.size() != expectedInputSize) {
+            throw new IllegalArgumentException("State size does not match input layer size.");
         }
-
+        Map<Integer, Double> neuronValues = new HashMap<>();
+        int index = 0;
+        for (NeuronGene neuron : inputNeurons) {
+            if (neuron.getNeuronType() == NeuronType.INPUT) {
+                neuronValues.put(neuron.getId(), state.get(index++));
+            } else if (neuron.getNeuronType() == NeuronType.BIAS) {
+                neuronValues.put(neuron.getId(), 1.0); 
+            }
+        }
         List<Double> sortedKeys = new ArrayList<>(layers.keySet());
         Collections.sort(sortedKeys);
 
         for (double layerKey : sortedKeys) {
             for (NeuronGene neuron : layers.get(layerKey)) {
-                if (neuron.getNeuronType() == NeuronType.INPUT) continue;
+                if (neuron.getNeuronType() == NeuronType.INPUT || neuron.getNeuronType() == NeuronType.BIAS) continue;
 
                 double sum = 0.0;
                 for (ConnectionGene connection : connections) {
                     if (connection.getTargetNeuron().getId() == neuron.getId() && connection.getEnabled()) {
                         int sourceId = connection.getSourceNeuron().getId();
                         double weight = connection.getWeight();
-                        sum += neuron_Values.getOrDefault(sourceId, 0.0) * weight;
+                        sum += neuronValues.getOrDefault(sourceId, 0.0) * weight;
                     }
                 }
-
-                
                 double activatedValue = applyActivation(neuron.getActivationFunction(), sum);
-                neuron_Values.put(neuron.getId(), activatedValue);
+                neuronValues.put(neuron.getId(), activatedValue);
             }
         }
 
+        
         List<Double> outputValues = new ArrayList<>();
         for (NeuronGene outputNeuron : layers.get(OUTPUT_LAYER)) {
-            outputValues.add(neuron_Values.getOrDefault(outputNeuron.getId(), 0.0));
+            outputValues.add(neuronValues.getOrDefault(outputNeuron.getId(), 0.0));
         }
 
         return outputValues;
