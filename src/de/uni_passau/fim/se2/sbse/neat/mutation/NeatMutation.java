@@ -10,6 +10,7 @@ import java.util.Set;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -154,23 +155,22 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         
         if (potentialSources.isEmpty() || potentialTargets.isEmpty()) return parent;
         
-        NeuronGene fromNeuron, toNeuron;
-        int attemptCount = 0;
-        do {
-            if (++attemptCount > potentialSources.size() * potentialTargets.size()) return parent; // Avoid infinite loop
-            fromNeuron = potentialSources.get(random.nextInt(potentialSources.size()));
-            toNeuron = potentialTargets.get(random.nextInt(potentialTargets.size()));
-        } while (fromNeuron.equals(toNeuron) || existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId()));
-
-        int freshInnovationNumber = connectionCounter++;
-        innovations.add(new InnovationImpl(freshInnovationNumber));
-
-        ConnectionGene novelConnection = new ConnectionGene(fromNeuron, toNeuron, random.nextDouble() * 2 - 1, true, freshInnovationNumber);
-
-        List<ConnectionGene> revisedConnections = new ArrayList<>(parent.getConnections());
-        revisedConnections.add(novelConnection);
-
-        return new NetworkChromosome(parent.getLayers(), revisedConnections);
+        Collections.shuffle(potentialSources, random);
+        Collections.shuffle(potentialTargets, random);
+        
+        for (NeuronGene fromNeuron : potentialSources) {
+            for (NeuronGene toNeuron : potentialTargets) {
+                if (!fromNeuron.equals(toNeuron) && !existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId())) {
+                    int freshInnovationNumber = connectionCounter++;
+                    innovations.add(new InnovationImpl(freshInnovationNumber));
+                    ConnectionGene novelConnection = new ConnectionGene(fromNeuron, toNeuron, random.nextDouble() * 2 - 1, true, freshInnovationNumber);
+                    List<ConnectionGene> revisedConnections = new ArrayList<>(parent.getConnections());
+                    revisedConnections.add(novelConnection);
+                    return new NetworkChromosome(parent.getLayers(), revisedConnections);
+                }
+            }
+        }
+        return parent;
     }
 
     
