@@ -14,6 +14,8 @@ public class NEAT implements Neuroevolution {
     private final int populationSize;
     private final int maxGenerations;
     private final Set<Innovation> innovations;
+    private final Map<String, Integer> globalInnovationMap;
+    private int innovationCounter = 1000;
     
     private List<NetworkChromosome> population;
     private int generation;
@@ -26,6 +28,7 @@ public class NEAT implements Neuroevolution {
         this.populationSize = populationSize;
         this.maxGenerations = maxGenerations;
         this.innovations = new HashSet<>();
+        this.globalInnovationMap = new HashMap<>();
         this.population = new ArrayList<>();
         this.generation = 0;
         initializePopulation();
@@ -113,20 +116,6 @@ public class NEAT implements Neuroevolution {
         }
     }
 
-    @Override
-    public Agent solve(Environment environment) {
-        for (generation = 0; generation < maxGenerations; generation++) {
-            evaluateFitness(environment);
-            speciate();
-            reproduce();
-
-            if (isSolved(environment)) {
-                break;
-            }
-        }
-        return getBestAgent();
-    }
-
     private void reproduce() {
         List<NetworkChromosome> newPopulation = new ArrayList<>();
         NeatCrossover crossover = new NeatCrossover(new Random());
@@ -151,14 +140,30 @@ public class NEAT implements Neuroevolution {
         }
         population = newPopulation;
     }
-
     private NetworkChromosome selectParent() {
         int tournamentSize = 3;
         List<NetworkChromosome> tournament = new ArrayList<>();
+        Random random = new Random();
+
         for (int i = 0; i < tournamentSize; i++) {
-            tournament.add(population.get(new Random().nextInt(population.size())));
+            tournament.add(population.get(random.nextInt(population.size())));
         }
+
         return Collections.max(tournament, Comparator.comparingDouble(NetworkChromosome::getFitness));
+    }
+
+    @Override
+    public Agent solve(Environment environment) {
+        for (generation = 0; generation < maxGenerations; generation++) {
+            evaluateFitness(environment);
+            speciate();
+            reproduce();
+
+            if (isSolved(environment)) {
+                break;
+            }
+        }
+        return getBestAgent();
     }
 
     private boolean isSolved(Environment environment) {
