@@ -137,29 +137,28 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome addConnection(NetworkChromosome parent) {
         List<NeuronGene> neuronList = new ArrayList<>();
         parent.getLayers().values().forEach(neuronList::addAll);
-    
+
         Set<String> existingConnections = new HashSet<>();
         for (ConnectionGene connection : parent.getConnections()) {
             existingConnections.add(connection.getSourceNeuron().getId() + "->" + connection.getTargetNeuron().getId());
         }
     
-        int totalPossibleConnections = (neuronList.size() * (neuronList.size() - 1)) / 2; 
-        if (existingConnections.size() >= totalPossibleConnections) {
-            return parent; 
-        }
-    
-        int maxAttempts = 100;
+        int maxAttempts = 100; 
         while (maxAttempts-- > 0) {
             NeuronGene fromNeuron = neuronList.get(random.nextInt(neuronList.size()));
             NeuronGene toNeuron = neuronList.get(random.nextInt(neuronList.size()));
     
-            if (fromNeuron.equals(toNeuron) || fromNeuron.getNeuronType() == NeuronType.OUTPUT || toNeuron.getNeuronType() == NeuronType.INPUT) {
+            
+            if (fromNeuron.equals(toNeuron) || fromNeuron.getNeuronType() == NeuronType.OUTPUT || 
+                toNeuron.getNeuronType() == NeuronType.INPUT) {
                 continue;
             }
     
             String connectionSignature = fromNeuron.getId() + "->" + toNeuron.getId();
     
+
             if (!existingConnections.contains(connectionSignature)) {
+                existingConnections.add(connectionSignature); 
                 int uniqueInnovation;
                 if (globalInnovationMap.containsKey(connectionSignature)) {
                     uniqueInnovation = globalInnovationMap.get(connectionSignature);
@@ -175,8 +174,9 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
                 return new NetworkChromosome(parent.getLayers(), updatedConnections);
             }
         }
-        return parent;
+        return parent; 
     }
+    
     
 
     /**
