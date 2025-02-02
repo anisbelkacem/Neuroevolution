@@ -1,5 +1,6 @@
 package de.uni_passau.fim.se2.sbse.neat;
 
+import de.uni_passau.fim.se2.sbse.neat.algorithms.NEAT;
 import de.uni_passau.fim.se2.sbse.neat.algorithms.Neuroevolution;
 import de.uni_passau.fim.se2.sbse.neat.chromosomes.Agent;
 import de.uni_passau.fim.se2.sbse.neat.environments.Environment;
@@ -11,6 +12,7 @@ import picocli.CommandLine;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
@@ -143,8 +145,13 @@ public class Main implements Callable<Integer> {
      * @return The initialised Neat algorithm.
      */
     public static Neuroevolution initialiseNeat(int populationSize, int maxGenerations) {
-        throw new UnsupportedOperationException("Implement me!");
+        double mutationRate = 0.2;
+        double crossoverRate = 0.8;
+        Random random = new Random();
+    
+        return new NEAT(populationSize, maxGenerations, mutationRate, crossoverRate, random);
     }
+    
 
     /**
      * Initialises the specified reinforcement learning task.
