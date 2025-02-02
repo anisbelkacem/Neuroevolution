@@ -158,16 +158,21 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         Collections.shuffle(potentialSources, random);
         Collections.shuffle(potentialTargets, random);
         
-        for (NeuronGene fromNeuron : potentialSources) {
-            for (NeuronGene toNeuron : potentialTargets) {
-                if (!fromNeuron.equals(toNeuron) && !existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId())) {
-                    int freshInnovationNumber = connectionCounter++;
-                    innovations.add(new InnovationImpl(freshInnovationNumber));
-                    ConnectionGene novelConnection = new ConnectionGene(fromNeuron, toNeuron, random.nextDouble() * 2 - 1, true, freshInnovationNumber);
-                    List<ConnectionGene> revisedConnections = new ArrayList<>(parent.getConnections());
-                    revisedConnections.add(novelConnection);
-                    return new NetworkChromosome(parent.getLayers(), revisedConnections);
-                }
+        int maxAttempts = potentialSources.size() * potentialTargets.size();
+        int attempt = 0;
+        
+        while (attempt < maxAttempts) {
+            attempt++;
+            NeuronGene fromNeuron = potentialSources.get(random.nextInt(potentialSources.size()));
+            NeuronGene toNeuron = potentialTargets.get(random.nextInt(potentialTargets.size()));
+            
+            if (!fromNeuron.equals(toNeuron) && !existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId())) {
+                int freshInnovationNumber = connectionCounter++;
+                innovations.add(new InnovationImpl(freshInnovationNumber));
+                ConnectionGene novelConnection = new ConnectionGene(fromNeuron, toNeuron, random.nextDouble() * 2 - 1, true, freshInnovationNumber);
+                List<ConnectionGene> revisedConnections = new ArrayList<>(parent.getConnections());
+                revisedConnections.add(novelConnection);
+                return new NetworkChromosome(parent.getLayers(), revisedConnections);
             }
         }
         return parent;
