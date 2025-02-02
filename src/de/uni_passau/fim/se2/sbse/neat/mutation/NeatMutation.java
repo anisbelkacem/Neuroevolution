@@ -10,8 +10,10 @@ import java.util.Set;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implements the mutation operator for the Neat algorithm, which applies four types of mutations based on probabilities:
@@ -85,29 +87,31 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
      * @return The mutated network chromosome.
      */
     public NetworkChromosome addNeuron(NetworkChromosome parent) {
-        List<ConnectionGene> connections = new ArrayList<>(parent.getConnections());
-        if (connections.isEmpty()) return parent;
-
-        ConnectionGene selected = connections.get(random.nextInt(connections.size()));
-        selected = new ConnectionGene(selected.getSourceNeuron(), selected.getTargetNeuron(), selected.getWeight(), false, selected.getInnovationNumber());
-
-        NeuronGene newNeuron = new NeuronGene(parent.getLayers().size() + 1, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
-
-        ConnectionGene inToNeuron = new ConnectionGene(selected.getSourceNeuron(), newNeuron, 1.0, true, innovations.size());
-        ConnectionGene neuronToOut = new ConnectionGene(newNeuron, selected.getTargetNeuron(), selected.getWeight(), true, innovations.size() + 1);
-
+        List<ConnectionGene> existingConnections = new ArrayList<>(parent.getConnections());
+        if (existingConnections.isEmpty()) return parent;
+    
+        ConnectionGene chosenConnection = existingConnections.get(random.nextInt(existingConnections.size()));
+        ConnectionGene disabledConnection = new ConnectionGene(chosenConnection.getSourceNeuron(), chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), false, chosenConnection.getInnovationNumber());
+    
+        NeuronGene addedNeuron = new NeuronGene(innovations.size(), ActivationFunction.SIGMOID, NeuronType.HIDDEN);
+    
+        ConnectionGene inputToNewNeuron = new ConnectionGene(chosenConnection.getSourceNeuron(), addedNeuron, 1.0, true, innovations.size());
+        ConnectionGene newNeuronToOutput = new ConnectionGene(addedNeuron, chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), true, innovations.size() + 1);
+    
         innovations.add(new InnovationImpl(innovations.size()));
         innovations.add(new InnovationImpl(innovations.size() + 1));
-
-        List<ConnectionGene> newConnections = new ArrayList<>(parent.getConnections());
-        newConnections.remove(selected);
-        newConnections.add(inToNeuron);
-        newConnections.add(neuronToOut);
-
-        return new NetworkChromosome(parent.getLayers(), newConnections);
-    }
     
-
+        List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
+        updatedConnections.remove(chosenConnection); 
+        updatedConnections.add(disabledConnection);
+        updatedConnections.add(inputToNewNeuron);
+        updatedConnections.add(newNeuronToOutput);
+    
+        Map<Double, List<NeuronGene>> updatedLayers = new HashMap<>(parent.getLayers());
+        updatedLayers.computeIfAbsent(0.5, k -> new ArrayList<>()).add(addedNeuron);
+    
+        return new NetworkChromosome(updatedLayers, updatedConnections);
+    }
     /**
      * Adds a connection to the given network chromosome.
      * The source neuron of the connection is chosen randomly from the list of neurons in the network chromosome,
