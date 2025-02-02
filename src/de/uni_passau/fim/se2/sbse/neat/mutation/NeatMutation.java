@@ -36,6 +36,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
      */
     private final Set<Innovation> innovations;
     private int neuronCounter = 1000;
+    private int connectionCounter = 1000;
 
     /**
      * Constructs a new NeatMutation with the given random number generator and the list of innovations that occurred so far in the search.
@@ -96,11 +97,11 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
 
         NeuronGene addedNeuron = new NeuronGene(neuronCounter++, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
 
-        ConnectionGene inputToNewNeuron = new ConnectionGene(chosenConnection.getSourceNeuron(), addedNeuron, 1.0, true, innovations.size());
-        ConnectionGene newNeuronToOutput = new ConnectionGene(addedNeuron, chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), true, innovations.size() + 1);
+        ConnectionGene inputToNewNeuron = new ConnectionGene(chosenConnection.getSourceNeuron(), addedNeuron, 1.0, true, connectionCounter++);
+        ConnectionGene newNeuronToOutput = new ConnectionGene(addedNeuron, chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), true, connectionCounter++);
 
-        innovations.add(new InnovationImpl(innovations.size()));
-        innovations.add(new InnovationImpl(innovations.size() + 1));
+        innovations.add(new InnovationImpl(connectionCounter - 2));
+        innovations.add(new InnovationImpl(connectionCounter - 1));
 
         List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
         updatedConnections.remove(chosenConnection);
@@ -113,6 +114,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
 
         return new NetworkChromosome(updatedLayers, updatedConnections);
     }
+
     /**
      * Adds a connection to the given network chromosome.
      * The source neuron of the connection is chosen randomly from the list of neurons in the network chromosome,
@@ -144,7 +146,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             target = neurons.get(random.nextInt(neurons.size()));
         } while (source.getNeuronType() == NeuronType.OUTPUT || target.getNeuronType() == NeuronType.INPUT || source == target || existingConnections.contains(source.getId() + "-" + target.getId()));
 
-        int newInnovationNumber = innovations.size();
+        int newInnovationNumber = connectionCounter++;
         innovations.add(new InnovationImpl(newInnovationNumber));
 
         ConnectionGene newConnection = new ConnectionGene(source, target, random.nextDouble() * 2 - 1, true, newInnovationNumber);
