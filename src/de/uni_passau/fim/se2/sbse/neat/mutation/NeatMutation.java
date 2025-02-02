@@ -140,13 +140,27 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             existingLinks.add(conn.getSourceNeuron().getId() + "->" + conn.getTargetNeuron().getId());
         }
 
+        List<NeuronGene> potentialSources = new ArrayList<>();
+        List<NeuronGene> potentialTargets = new ArrayList<>();
+        
+        for (NeuronGene neuron : networkNeurons) {
+            if (neuron.getNeuronType() != NeuronType.OUTPUT) {
+                potentialSources.add(neuron);
+            }
+            if (neuron.getNeuronType() != NeuronType.INPUT) {
+                potentialTargets.add(neuron);
+            }
+        }
+        
+        if (potentialSources.isEmpty() || potentialTargets.isEmpty()) return parent;
+        
         NeuronGene fromNeuron, toNeuron;
         int attemptCount = 0;
         do {
-            if (++attemptCount > networkNeurons.size() * networkNeurons.size()) return parent; // Avoid infinite loop
-            fromNeuron = networkNeurons.get(random.nextInt(networkNeurons.size()));
-            toNeuron = networkNeurons.get(random.nextInt(networkNeurons.size()));
-        } while (fromNeuron.getNeuronType() == NeuronType.OUTPUT || toNeuron.getNeuronType() == NeuronType.INPUT || fromNeuron.equals(toNeuron) || existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId()));
+            if (++attemptCount > potentialSources.size() * potentialTargets.size()) return parent; // Avoid infinite loop
+            fromNeuron = potentialSources.get(random.nextInt(potentialSources.size()));
+            toNeuron = potentialTargets.get(random.nextInt(potentialTargets.size()));
+        } while (fromNeuron.equals(toNeuron) || existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId()));
 
         int freshInnovationNumber = connectionCounter++;
         innovations.add(new InnovationImpl(freshInnovationNumber));
