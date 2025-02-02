@@ -36,8 +36,8 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
      * the set of innovations must be updated appropriately.
      */
     private final Set<Innovation> innovations;
-    private int neuronCounter = 1000;
     private int connectionCounter = 1000;
+    private int innovationCounter = 1000;
     private final Map<String, Integer> globalInnovationMap;
 
     /**
@@ -94,27 +94,30 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome addNeuron(NetworkChromosome parent) {
         List<ConnectionGene> existingConnections = new ArrayList<>(parent.getConnections());
         if (existingConnections.isEmpty()) return parent;
-
+    
         ConnectionGene chosenConnection = existingConnections.get(random.nextInt(existingConnections.size()));
         ConnectionGene disabledConnection = new ConnectionGene(chosenConnection.getSourceNeuron(), chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), false, chosenConnection.getInnovationNumber());
-
-        NeuronGene addedNeuron = new NeuronGene(neuronCounter++, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
-
-        ConnectionGene inputToNewNeuron = new ConnectionGene(chosenConnection.getSourceNeuron(), addedNeuron, 1.0, true, connectionCounter++);
-        ConnectionGene newNeuronToOutput = new ConnectionGene(addedNeuron, chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), true, connectionCounter++);
-
-        innovations.add(new InnovationImpl(connectionCounter - 2));
-        innovations.add(new InnovationImpl(connectionCounter - 1));
-
+    
+        // **Ensure new innovations are unique**
+        String key1 = chosenConnection.getSourceNeuron().getId() + "->H";
+        String key2 = "H->" + chosenConnection.getTargetNeuron().getId();
+    
+        int newInnovation1 = globalInnovationMap.computeIfAbsent(key1, k -> innovationCounter++);
+        int newInnovation2 = globalInnovationMap.computeIfAbsent(key2, k -> innovationCounter++);
+    
+        NeuronGene addedNeuron = new NeuronGene(innovationCounter++, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
+        ConnectionGene inputToNewNeuron = new ConnectionGene(chosenConnection.getSourceNeuron(), addedNeuron, 1.0, true, newInnovation1);
+        ConnectionGene newNeuronToOutput = new ConnectionGene(addedNeuron, chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), true, newInnovation2);
+    
         List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
         updatedConnections.remove(chosenConnection);
         updatedConnections.add(disabledConnection);
         updatedConnections.add(inputToNewNeuron);
         updatedConnections.add(newNeuronToOutput);
-
+    
         Map<Double, List<NeuronGene>> updatedLayers = new HashMap<>(parent.getLayers());
         updatedLayers.computeIfAbsent(0.5, k -> new ArrayList<>()).add(addedNeuron);
-
+    
         return new NetworkChromosome(updatedLayers, updatedConnections);
     }
 
