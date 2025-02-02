@@ -35,6 +35,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
      * the set of innovations must be updated appropriately.
      */
     private final Set<Innovation> innovations;
+    private int neuronCounter = 1000;
 
     /**
      * Constructs a new NeatMutation with the given random number generator and the list of innovations that occurred so far in the search.
@@ -89,27 +90,27 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome addNeuron(NetworkChromosome parent) {
         List<ConnectionGene> existingConnections = new ArrayList<>(parent.getConnections());
         if (existingConnections.isEmpty()) return parent;
-    
+
         ConnectionGene chosenConnection = existingConnections.get(random.nextInt(existingConnections.size()));
         ConnectionGene disabledConnection = new ConnectionGene(chosenConnection.getSourceNeuron(), chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), false, chosenConnection.getInnovationNumber());
-    
-        NeuronGene addedNeuron = new NeuronGene(innovations.size(), ActivationFunction.SIGMOID, NeuronType.HIDDEN);
-    
+
+        NeuronGene addedNeuron = new NeuronGene(neuronCounter++, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
+
         ConnectionGene inputToNewNeuron = new ConnectionGene(chosenConnection.getSourceNeuron(), addedNeuron, 1.0, true, innovations.size());
         ConnectionGene newNeuronToOutput = new ConnectionGene(addedNeuron, chosenConnection.getTargetNeuron(), chosenConnection.getWeight(), true, innovations.size() + 1);
-    
+
         innovations.add(new InnovationImpl(innovations.size()));
         innovations.add(new InnovationImpl(innovations.size() + 1));
-    
+
         List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
-        updatedConnections.remove(chosenConnection); 
+        updatedConnections.remove(chosenConnection);
         updatedConnections.add(disabledConnection);
         updatedConnections.add(inputToNewNeuron);
         updatedConnections.add(newNeuronToOutput);
-    
+
         Map<Double, List<NeuronGene>> updatedLayers = new HashMap<>(parent.getLayers());
         updatedLayers.computeIfAbsent(0.5, k -> new ArrayList<>()).add(addedNeuron);
-    
+
         return new NetworkChromosome(updatedLayers, updatedConnections);
     }
     /**
