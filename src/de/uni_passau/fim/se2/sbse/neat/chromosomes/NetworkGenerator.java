@@ -59,24 +59,26 @@ public class NetworkGenerator {
         List<ConnectionGene> ListOfconnections = new ArrayList<>();
         List<NeuronGene> in_Neurons = new ArrayList<>();
         List<NeuronGene> out_Neurons = new ArrayList<>();
+        NeuronGene bias_Neuron = new NeuronGene(inputSize, ActivationFunction.NONE, NeuronType.BIAS);
+        in_Neurons.add(bias_Neuron);
         while (i< inputSize || j < outputSize) {
             if (i < inputSize) {
                 in_Neurons.add(new NeuronGene(i, ActivationFunction.NONE, NeuronType.INPUT));
                 i++;
             }
             if (j < outputSize) {
-                out_Neurons.add(new NeuronGene(inputSize + i, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
+                out_Neurons.add(new NeuronGene(inputSize + 1 + i, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
                 j++;
             }
         }
         layersMap.put(1.0, out_Neurons);
         layersMap.put(0.0, in_Neurons);
         int innovationCounter = 0;
-        for (NeuronGene input_Neuron : in_Neurons) {
-            for (NeuronGene output_Neuron : out_Neurons) {
+        for (NeuronGene inputNeuron : in_Neurons) {
+            for (NeuronGene outputNeuron : out_Neurons) {
                 innovationCounter++;
-                double randomValue = random.nextDouble() * 2 - 1;
-                ListOfconnections.add(new ConnectionGene(input_Neuron, output_Neuron, randomValue, true, innovationCounter));
+                double weight = random.nextDouble() * 2 - 1;
+                ListOfconnections.add(new ConnectionGene(inputNeuron, outputNeuron, weight, true, innovationCounter));
             }
         }
         return new NetworkChromosome(layersMap, ListOfconnections);

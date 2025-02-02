@@ -57,9 +57,6 @@ public class NetworkChromosome implements Agent {
 
     @Override
     public List<Double> getOutput(List<Double> state) {
-        if (state.size() != layers.get(INPUT_LAYER).size()) {
-            throw new IllegalArgumentException("State size does not match input layer size.");
-        }
         Map<Integer, Double> neuron_Values = new HashMap<>();
 
         List<NeuronGene> input_Neurons = layers.get(INPUT_LAYER);
