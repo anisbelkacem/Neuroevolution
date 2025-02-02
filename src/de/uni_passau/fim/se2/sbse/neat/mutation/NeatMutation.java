@@ -43,11 +43,14 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     
     private int getOrCreateInnovationNumber(NeuronGene from, NeuronGene to) {
         String key = from.getId() + "->" + to.getId();
-        return globalInnovationMap.computeIfAbsent(key, k -> {
+        if (globalInnovationMap.containsKey(key)) {
+            return globalInnovationMap.get(key);
+        } else {
             int newInnovation = connectionCounter++;
+            globalInnovationMap.put(key, newInnovation);
             innovations.add(new InnovationImpl(newInnovation));
             return newInnovation;
-        });
+        }
     }
 
     
