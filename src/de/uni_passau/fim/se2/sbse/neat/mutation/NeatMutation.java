@@ -143,9 +143,8 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             existingConnections.add(connection.getSourceNeuron().getId() + "->" + connection.getTargetNeuron().getId());
         }
     
-        //Check if the network is fully connected before proceeding
-        int totalPossibleConnections = (neuronList.size() * (neuronList.size() - 1)) / 2 ; 
-        if (existingConnections.size() >= totalPossibleConnections-1) {
+        int totalPossibleConnections = (neuronList.size() * (neuronList.size() - 1)) / 2; 
+        if (existingConnections.size() >= totalPossibleConnections) {
             return parent; 
         }
     
@@ -178,6 +177,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         }
         return parent;
     }
+    
 
     /**
      * Mutates the weights of the connections in the given network chromosome.
