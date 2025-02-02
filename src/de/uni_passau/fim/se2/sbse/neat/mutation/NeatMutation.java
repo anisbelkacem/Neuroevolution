@@ -29,16 +29,17 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome apply(NetworkChromosome parent) {
         double mutationChance = random.nextDouble();
 
-        if (mutationChance < 0.25) {
+        if (mutationChance < 0.35) {  
             return addNeuron(parent);
-        } else if (mutationChance < 0.50) {
+        } else if (mutationChance < 0.65) {  
             return addConnection(parent);
-        } else if (mutationChance < 0.75) {
+        } else if (mutationChance < 0.85) { 
             return mutateWeights(parent);
         } else {
             return toggleConnection(parent);
         }
     }
+
 
     
     private int getOrCreateInnovationNumber(NeuronGene from, NeuronGene to) {
