@@ -141,38 +141,38 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             existingConnections.add(conn.getSourceNeuron().getId() + "->" + conn.getTargetNeuron().getId());
         }
 
-        List<NeuronGene> validSources = new ArrayList<>();
-        List<NeuronGene> validTargets = new ArrayList<>();
+        List<NeuronGene> potentialSources = new ArrayList<>();
+        List<NeuronGene> potentialTargets = new ArrayList<>();
         
         for (NeuronGene neuron : allNeurons) {
             if (neuron.getNeuronType() != NeuronType.OUTPUT) {
-                validSources.add(neuron);
+                potentialSources.add(neuron);
             }
             if (neuron.getNeuronType() != NeuronType.INPUT) {
-                validTargets.add(neuron);
+                potentialTargets.add(neuron);
             }
         }
         
-        if (validSources.isEmpty() || validTargets.isEmpty()) return parent;
+        if (potentialSources.isEmpty() || potentialTargets.isEmpty()) return parent;
         
-        Collections.shuffle(validSources, random);
-        Collections.shuffle(validTargets, random);
+        Collections.shuffle(potentialSources, random);
+        Collections.shuffle(potentialTargets, random);
         
-        int maxRetries = validSources.size() * validTargets.size();
-        int attempts = 0;
+        int maxAttempts = potentialSources.size() * potentialTargets.size();
+        int attemptCounter = 0;
         
-        while (attempts < maxRetries) {
-            attempts++;
-            NeuronGene startNeuron = validSources.get(random.nextInt(validSources.size()));
-            NeuronGene endNeuron = validTargets.get(random.nextInt(validTargets.size()));
+        while (attemptCounter < maxAttempts) {
+            attemptCounter++;
+            NeuronGene startNeuron = potentialSources.get(random.nextInt(potentialSources.size()));
+            NeuronGene endNeuron = potentialTargets.get(random.nextInt(potentialTargets.size()));
             
             if (!startNeuron.equals(endNeuron) && !existingConnections.contains(startNeuron.getId() + "->" + endNeuron.getId())) {
-                int uniqueInnovation = connectionCounter++;
-                innovations.add(new InnovationImpl(uniqueInnovation));
-                ConnectionGene freshConnection = new ConnectionGene(startNeuron, endNeuron, random.nextDouble() * 2 - 1, true, uniqueInnovation);
-                List<ConnectionGene> adjustedConnections = new ArrayList<>(parent.getConnections());
-                adjustedConnections.add(freshConnection);
-                return new NetworkChromosome(parent.getLayers(), adjustedConnections);
+                int newInnovation = connectionCounter++;
+                innovations.add(new InnovationImpl(newInnovation));
+                ConnectionGene freshConnection = new ConnectionGene(startNeuron, endNeuron, random.nextGaussian() * 0.5, true, newInnovation);
+                List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
+                updatedConnections.add(freshConnection);
+                return new NetworkChromosome(parent.getLayers(), updatedConnections);
             }
         }
         return parent;
