@@ -43,7 +43,6 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     
     private int getOrCreateInnovationNumber(NeuronGene from, NeuronGene to) {
         String key = from.getId() + "->" + to.getId();
-    
         if (globalInnovationMap.containsKey(key)) {
             return globalInnovationMap.get(key);
         } else {
@@ -56,6 +55,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             return newInnovation;
         }
     }
+    
     
 
     
@@ -72,6 +72,8 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             false, 
             chosenConnection.getInnovationNumber()
         );
+    
+
         NeuronGene addedNeuron = new NeuronGene(neuronCounter++, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
         int inputToNewInnovation = getOrCreateInnovationNumber(chosenConnection.getSourceNeuron(), addedNeuron);
         int newToOutputInnovation = getOrCreateInnovationNumber(addedNeuron, chosenConnection.getTargetNeuron());
@@ -139,6 +141,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         }
         return new NetworkChromosome(new HashMap<>(parent.getLayers()), new ArrayList<>(parent.getConnections()));
     }
+    
     
 
     private boolean isValidFeedForwardConnection(NetworkChromosome parent, NeuronGene fromNeuron, NeuronGene toNeuron) {

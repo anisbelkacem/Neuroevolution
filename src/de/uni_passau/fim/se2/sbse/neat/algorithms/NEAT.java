@@ -26,11 +26,12 @@ public class NEAT implements Neuroevolution {
         this.innovations = new HashSet<>();
         this.population = new ArrayList<>();
         this.species = new HashMap<>();
+
     }
 
     @Override
     public Agent solve(Environment environment) {
-        initialisePopulation();
+        initialisePopulation(environment);
 
         for (int generation = 0; generation < maxGenerations; generation++) {
             assignToSpecies();
@@ -49,12 +50,16 @@ public class NEAT implements Neuroevolution {
         return getBestAgent();
     }
 
-    private void initialisePopulation() {
-        NetworkGenerator generator = new NetworkGenerator(innovations, 2, 1, random);
+    private void initialisePopulation(Environment environment) {
+        int inputSize = environment.stateSize();  
+        int outputSize = environment.actionInputSize(); 
+        
+        NetworkGenerator generator = new NetworkGenerator(innovations, inputSize, outputSize, random);
         for (int i = 0; i < populationSize; i++) {
             population.add(generator.generate());
         }
     }
+    
 
     private void assignToSpecies() {
         species.clear();
@@ -91,13 +96,21 @@ public class NEAT implements Neuroevolution {
 
                 NetworkChromosome offspring = crossover.apply(parent1, parent2);
                 offspring = mutation.apply(offspring);
+                double mutation_Rate = random.nextDouble();
+                if (mutation_Rate < 0.7) {
+                    offspring = mutation.addNeuron(offspring);
+                } else if (mutation_Rate < 0.85) {
+                    offspring = mutation.addConnection(offspring);
+                } else {
+                    offspring = mutation.mutateWeights(offspring);
+                }
                 newPopulation.add(offspring);
             }
         }
 
-        population = newPopulation;
+        //population = newPopulation;
     }
-
+    
     private NetworkChromosome selectParent(List<NetworkChromosome> speciesMembers) {
         double totalFitness = speciesMembers.stream().mapToDouble(NetworkChromosome::getFitness).sum();
         double selectionPoint = random.nextDouble() * totalFitness;

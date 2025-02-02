@@ -83,4 +83,6 @@ public class NetworkGenerator {
         }
         return new NetworkChromosome(layersMap, ListOfconnections);
     }
+
+    
 }

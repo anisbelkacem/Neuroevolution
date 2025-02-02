@@ -3,6 +3,7 @@ package de.uni_passau.fim.se2.sbse.neat.chromosomes;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static java.util.Objects.requireNonNull;
 
