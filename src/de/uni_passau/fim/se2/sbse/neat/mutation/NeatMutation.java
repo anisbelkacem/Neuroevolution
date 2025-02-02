@@ -143,6 +143,11 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             existingConnections.add(connection.getSourceNeuron().getId() + "->" + connection.getTargetNeuron().getId());
         }
 
+        int totalPossibleConnections = (neuronList.size() * (neuronList.size() - 1)) / 2; 
+        if (existingConnections.size() >= totalPossibleConnections) {
+            return parent; 
+        }
+
         int maxAttempts = 100;
         while (maxAttempts-- > 0) {
             NeuronGene fromNeuron = neuronList.get(random.nextInt(neuronList.size()));
