@@ -137,7 +137,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome addConnection(NetworkChromosome parent) {
         List<NeuronGene> neuronList = new ArrayList<>();
         parent.getLayers().values().forEach(neuronList::addAll);
-    
+
         Set<String> existingConnections = new HashSet<>();
         for (ConnectionGene connection : parent.getConnections()) {
             existingConnections.add(connection.getSourceNeuron().getId() + "->" + connection.getTargetNeuron().getId());
@@ -147,21 +147,17 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         while (maxAttempts-- > 0) {
             NeuronGene fromNeuron = neuronList.get(random.nextInt(neuronList.size()));
             NeuronGene toNeuron = neuronList.get(random.nextInt(neuronList.size()));
- 
             if (fromNeuron.equals(toNeuron) || 
                 fromNeuron.getNeuronType() == NeuronType.OUTPUT || 
-                toNeuron.getNeuronType() == NeuronType.INPUT) {
+                toNeuron.getNeuronType() == NeuronType.INPUT ||
+                !isValidFeedForwardConnection(parent, fromNeuron, toNeuron)) {
                 continue;
             }
-    
             String connectionSignature = fromNeuron.getId() + "->" + toNeuron.getId();
             if (existingConnections.contains(connectionSignature)) {
-                continue; 
-            } 
-            if (!isValidFeedForwardConnection(parent, fromNeuron, toNeuron)) {
-                continue; 
+                continue;
             }
-            existingConnections.add(connectionSignature);
+            existingConnections.add(connectionSignature); 
             int uniqueInnovation;
             if (globalInnovationMap.containsKey(connectionSignature)) {
                 uniqueInnovation = globalInnovationMap.get(connectionSignature);
@@ -170,15 +166,18 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
                 globalInnovationMap.put(connectionSignature, uniqueInnovation);
                 innovations.add(new InnovationImpl(uniqueInnovation));
             }
-            ConnectionGene newConn = new ConnectionGene(fromNeuron, toNeuron, random.nextGaussian() * 0.5, true, uniqueInnovation);
             List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
-            updatedConnections.add(newConn);
+            updatedConnections.add(new ConnectionGene(fromNeuron, toNeuron, random.nextGaussian() * 0.5, true, uniqueInnovation));
+            Map<Double, List<NeuronGene>> clonedLayers = new HashMap<>();
+            for (Map.Entry<Double, List<NeuronGene>> entry : parent.getLayers().entrySet()) {
+                clonedLayers.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            }
     
-            return new NetworkChromosome(parent.getLayers(), updatedConnections);
+            return new NetworkChromosome(clonedLayers, updatedConnections);
         }
-    
-        return parent; 
+        return new NetworkChromosome(new HashMap<>(parent.getLayers()), new ArrayList<>(parent.getConnections()));
     }
+    
     private boolean isValidFeedForwardConnection(NetworkChromosome parent, NeuronGene fromNeuron, NeuronGene toNeuron) {
         Map<Double, List<NeuronGene>> layers = parent.getLayers();
         double fromLayer = -1, toLayer = -1;
