@@ -137,38 +137,39 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome addConnection(NetworkChromosome parent) {
         List<NeuronGene> neuronList = new ArrayList<>();
         parent.getLayers().values().forEach(neuronList::addAll);
-
+    
         Set<String> existingConnections = new HashSet<>();
         for (ConnectionGene connection : parent.getConnections()) {
             existingConnections.add(connection.getSourceNeuron().getId() + "->" + connection.getTargetNeuron().getId());
         }
-
+    
+        //Check if the network is fully connected before proceeding
         int totalPossibleConnections = (neuronList.size() * (neuronList.size() - 1)) / 2; 
         if (existingConnections.size() >= totalPossibleConnections) {
             return parent; 
         }
-
+    
         int maxAttempts = 100;
         while (maxAttempts-- > 0) {
             NeuronGene fromNeuron = neuronList.get(random.nextInt(neuronList.size()));
             NeuronGene toNeuron = neuronList.get(random.nextInt(neuronList.size()));
-            
+    
             if (fromNeuron.equals(toNeuron) || fromNeuron.getNeuronType() == NeuronType.OUTPUT || toNeuron.getNeuronType() == NeuronType.INPUT) {
                 continue;
             }
-            
+    
             String connectionSignature = fromNeuron.getId() + "->" + toNeuron.getId();
-            
-            if (globalInnovationMap.containsKey(connectionSignature)) {
-                int existingInnovation = globalInnovationMap.get(connectionSignature);
-                ConnectionGene newConn = new ConnectionGene(fromNeuron, toNeuron, random.nextGaussian() * 0.5, true, existingInnovation);
-                List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
-                updatedConnections.add(newConn);
-                return new NetworkChromosome(parent.getLayers(), updatedConnections);
-            } else {
-                int uniqueInnovation = connectionCounter++;
-                globalInnovationMap.put(connectionSignature, uniqueInnovation);
-                innovations.add(new InnovationImpl(uniqueInnovation));
+    
+            if (!existingConnections.contains(connectionSignature)) {
+                int uniqueInnovation;
+                if (globalInnovationMap.containsKey(connectionSignature)) {
+                    uniqueInnovation = globalInnovationMap.get(connectionSignature);
+                } else {
+                    uniqueInnovation = connectionCounter++;
+                    globalInnovationMap.put(connectionSignature, uniqueInnovation);
+                    innovations.add(new InnovationImpl(uniqueInnovation));
+                }
+    
                 ConnectionGene newConn = new ConnectionGene(fromNeuron, toNeuron, random.nextGaussian() * 0.5, true, uniqueInnovation);
                 List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
                 updatedConnections.add(newConn);
