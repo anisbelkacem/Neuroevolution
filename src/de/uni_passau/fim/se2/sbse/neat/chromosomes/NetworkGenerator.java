@@ -54,6 +54,31 @@ public class NetworkGenerator {
      * @return a new network chromosome.
      */
     public NetworkChromosome generate() {
-        throw new UnsupportedOperationException("Implement me!");
+        int i=0,j=0;
+        Map<Double, List<NeuronGene>> layersMap = new HashMap<>();
+        List<ConnectionGene> ListOfconnections = new ArrayList<>();
+        List<NeuronGene> in_Neurons = new ArrayList<>();
+        List<NeuronGene> out_Neurons = new ArrayList<>();
+        while (i< inputSize || j < outputSize) {
+            if (i < inputSize) {
+                in_Neurons.add(new NeuronGene(i, ActivationFunction.NONE, NeuronType.INPUT));
+                i++;
+            }
+            if (j < outputSize) {
+                out_Neurons.add(new NeuronGene(inputSize + i, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
+                j++;
+            }
+        }
+        layersMap.put(1.0, out_Neurons);
+        layersMap.put(0.0, in_Neurons);
+        int innovationCounter = 0;
+        for (NeuronGene input_Neuron : in_Neurons) {
+            for (NeuronGene output_Neuron : out_Neurons) {
+                innovationCounter++;
+                double randomValue = random.nextDouble() * 2 - 1;
+                ListOfconnections.add(new ConnectionGene(input_Neuron, output_Neuron, randomValue, true, innovationCounter));
+            }
+        }
+        return new NetworkChromosome(layersMap, ListOfconnections);
     }
 }
