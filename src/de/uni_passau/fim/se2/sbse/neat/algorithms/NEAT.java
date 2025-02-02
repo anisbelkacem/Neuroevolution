@@ -1,181 +1,177 @@
 package de.uni_passau.fim.se2.sbse.neat.algorithms;
 
-import de.uni_passau.fim.se2.sbse.neat.chromosomes.*;
-import de.uni_passau.fim.se2.sbse.neat.crossover.NeatCrossover;
-import de.uni_passau.fim.se2.sbse.neat.mutation.NeatMutation;
-import de.uni_passau.fim.se2.sbse.neat.environments.Environment;
 import de.uni_passau.fim.se2.sbse.neat.algorithms.innovations.Innovation;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.*;
+import de.uni_passau.fim.se2.sbse.neat.environments.Environment;
+import de.uni_passau.fim.se2.sbse.neat.mutation.NeatMutation;
+import de.uni_passau.fim.se2.sbse.neat.crossover.NeatCrossover;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class NEAT implements Neuroevolution {
 
     private final int populationSize;
     private final int maxGenerations;
+    private double compatibilityThreshold;
+    private final Random random;
     private final Set<Innovation> innovations;
-    private final Map<String, Integer> globalInnovationMap;
-    private int innovationCounter = 1000;
-    
     private List<NetworkChromosome> population;
-    private int generation;
-    private double COMPATIBILITY_THRESHOLD = 3.0;
-    private double COMPATIBILITY_MODIFIER = 0.3;
-    private int TARGET_SPECIES_COUNT = 5;
-    private final List<Species> speciesList = new ArrayList<>();
+    private Map<Integer, List<NetworkChromosome>> species;
 
-    public NEAT(int populationSize, int maxGenerations) {
+    public NEAT(int populationSize, int maxGenerations, double compatibilityThreshold, Random random) {
         this.populationSize = populationSize;
         this.maxGenerations = maxGenerations;
+        this.compatibilityThreshold = compatibilityThreshold;
+        this.random = random;
         this.innovations = new HashSet<>();
-        this.globalInnovationMap = new HashMap<>();
         this.population = new ArrayList<>();
-        this.generation = 0;
-        initializePopulation();
+        this.species = new HashMap<>();
     }
 
-    private void initializePopulation() {
+    @Override
+    public Agent solve(Environment environment) {
+        initialisePopulation();
+
+        for (int generation = 0; generation < maxGenerations; generation++) {
+            assignToSpecies();
+            adjustCompatibilityThreshold();
+            evolveSpecies();
+            evaluatePopulation(environment);
+
+            NetworkChromosome bestAgent = getBestAgent();
+            System.out.println("Generation " + generation + " Best Fitness: " + bestAgent.getFitness());
+            if (environment.solved(bestAgent)) {
+                System.out.println("Solution found in generation " + generation);
+                return bestAgent;
+            }
+        }
+
+        return getBestAgent();
+    }
+
+    private void initialisePopulation() {
+        NetworkGenerator generator = new NetworkGenerator(innovations, 2, 1, random);
         for (int i = 0; i < populationSize; i++) {
-            NetworkChromosome chromosome = new NetworkGenerator(innovations, 2, 1, new Random()).generate();
-            population.add(chromosome);
+            population.add(generator.generate());
         }
     }
 
-    private void evaluateFitness(Environment environment) {
-        for (NetworkChromosome chromosome : population) {
-            double fitness = environment.evaluate(chromosome);
-            chromosome.setFitness(fitness);
-        }
-    }
-
-    private void speciate() {
-        List<Species> newSpeciesList = new ArrayList<>();
-
+    private void assignToSpecies() {
+        species.clear();
         for (NetworkChromosome chromosome : population) {
             boolean assigned = false;
-
-            for (Species species : speciesList) {
-                if (getCompatibilityDistance(chromosome, species.getRepresentative()) < COMPATIBILITY_THRESHOLD) {
-                    species.addMember(chromosome);
+            for (int speciesId : species.keySet()) {
+                NetworkChromosome representative = species.get(speciesId).get(0);
+                if (computeCompatibilityDistance(chromosome, representative) < compatibilityThreshold) {
+                    species.get(speciesId).add(chromosome);
                     assigned = true;
                     break;
                 }
             }
             if (!assigned) {
-                newSpeciesList.add(new Species(chromosome));
+                int newSpeciesId = species.size();
+                species.put(newSpeciesId, new ArrayList<>(List.of(chromosome)));
             }
         }
-
-        speciesList.clear();
-        speciesList.addAll(newSpeciesList);
-        adjustCompatibilityThreshold();
     }
 
-    private double getCompatibilityDistance(NetworkChromosome c1, NetworkChromosome c2) {
-        Map<Integer, ConnectionGene> genes1 = c1.getConnections().stream()
-                .collect(Collectors.toMap(ConnectionGene::getInnovationNumber, g -> g));
-        Map<Integer, ConnectionGene> genes2 = c2.getConnections().stream()
-                .collect(Collectors.toMap(ConnectionGene::getInnovationNumber, g -> g));
+    private void evolveSpecies() {
+        List<NetworkChromosome> newPopulation = new ArrayList<>();
+        NeatMutation mutation = new NeatMutation(innovations, random);
+        NeatCrossover crossover = new NeatCrossover(random);
 
-        int maxInnovation = Math.max(
-                genes1.keySet().stream().max(Integer::compareTo).orElse(0),
-                genes2.keySet().stream().max(Integer::compareTo).orElse(0)
-        );
+        for (List<NetworkChromosome> members : species.values()) {
+            members.sort(Comparator.comparingDouble(NetworkChromosome::getFitness).reversed());
+            int eliteSize = Math.max(1, members.size() / 5);
+            newPopulation.addAll(members.subList(0, eliteSize));
 
-        int excess = 0, disjoint = 0;
-        double weightDiff = 0;
-        int matchingGenes = 0;
+            while (newPopulation.size() < populationSize) {
+                NetworkChromosome parent1 = selectParent(members);
+                NetworkChromosome parent2 = selectParent(members);
 
-        for (int i = 0; i <= maxInnovation; i++) {
-            boolean inC1 = genes1.containsKey(i);
-            boolean inC2 = genes2.containsKey(i);
-
-            if (inC1 && inC2) {
-                weightDiff += Math.abs(genes1.get(i).getWeight() - genes2.get(i).getWeight());
-                matchingGenes++;
-            } else if (inC1 || inC2) {
-                if (i > maxInnovation) {
-                    excess++;
-                } else {
-                    disjoint++;
-                }
+                NetworkChromosome offspring = crossover.apply(parent1, parent2);
+                offspring = mutation.apply(offspring);
+                newPopulation.add(offspring);
             }
         }
 
-        double avgWeightDiff = (matchingGenes > 0) ? weightDiff / matchingGenes : 0;
-        int N = Math.max(genes1.size(), genes2.size());
+        population = newPopulation;
+    }
 
-        return ((1.0 * disjoint) / N) + ((1.0 * excess) / N) + (0.4 * avgWeightDiff);
+    private NetworkChromosome selectParent(List<NetworkChromosome> speciesMembers) {
+        double totalFitness = speciesMembers.stream().mapToDouble(NetworkChromosome::getFitness).sum();
+        double selectionPoint = random.nextDouble() * totalFitness;
+        double runningSum = 0;
+
+        for (NetworkChromosome member : speciesMembers) {
+            runningSum += member.getFitness();
+            if (runningSum >= selectionPoint) {
+                return member;
+            }
+        }
+        return speciesMembers.get(0);
+    }
+
+    private void evaluatePopulation(Environment environment) {
+        for (NetworkChromosome chromosome : population) {
+            chromosome.setFitness(environment.evaluate(chromosome));
+        }
+    }
+
+    private NetworkChromosome getBestAgent() {
+        return population.stream().max(Comparator.comparingDouble(NetworkChromosome::getFitness)).orElseThrow();
+    }
+
+    private double computeCompatibilityDistance(NetworkChromosome a, NetworkChromosome b) {
+        int disjoint = 0, excess = 0, matching = 0;
+        double weightDiff = 0.0;
+
+        Set<Integer> innovationsA = new HashSet<>();
+        Set<Integer> innovationsB = new HashSet<>();
+
+        for (ConnectionGene conn : a.getConnections()) {
+            innovationsA.add(conn.getInnovationNumber());
+        }
+        for (ConnectionGene conn : b.getConnections()) {
+            innovationsB.add(conn.getInnovationNumber());
+        }
+
+        for (int innovation : innovationsA) {
+            if (innovationsB.contains(innovation)) {
+                matching++;
+                weightDiff += Math.abs(a.getConnections().stream()
+                        .filter(c -> c.getInnovationNumber() == innovation)
+                        .findFirst().get().getWeight() - 
+                        b.getConnections().stream()
+                        .filter(c -> c.getInnovationNumber() == innovation)
+                        .findFirst().get().getWeight());
+            } else {
+                disjoint++;
+            }
+        }
+
+        for (int innovation : innovationsB) {
+            if (!innovationsA.contains(innovation)) {
+                excess++;
+            }
+        }
+
+        double N = Math.max(innovationsA.size(), innovationsB.size());
+        return (disjoint + excess) / N + (weightDiff / Math.max(1, matching));
     }
 
     private void adjustCompatibilityThreshold() {
-        if (speciesList.size() < TARGET_SPECIES_COUNT) {
-            COMPATIBILITY_THRESHOLD -= COMPATIBILITY_MODIFIER;
-        } else if (speciesList.size() > TARGET_SPECIES_COUNT) {
-            COMPATIBILITY_THRESHOLD += COMPATIBILITY_MODIFIER;
+        int numSpecies = species.size();
+        if (numSpecies < 5) {
+            compatibilityThreshold -= 0.3;
+        } else if (numSpecies > 10) {
+            compatibilityThreshold += 0.3;
         }
-    }
-
-    private void reproduce() {
-        List<NetworkChromosome> newPopulation = new ArrayList<>();
-        NeatCrossover crossover = new NeatCrossover(new Random());
-        NeatMutation mutation = new NeatMutation(innovations, new Random());
-
-        while (newPopulation.size() < populationSize) {
-            NetworkChromosome parent1 = selectParent();
-            NetworkChromosome parent2 = selectParent();
-
-            NetworkChromosome offspring;
-            if (new Random().nextDouble() < 0.8) {
-                offspring = crossover.apply(parent1, parent2);
-            } else {
-                offspring = parent1;
-            }
-
-            if (new Random().nextDouble() < 0.2) {
-                offspring = mutation.apply(offspring);
-            }
-
-            newPopulation.add(offspring);
-        }
-        population = newPopulation;
-    }
-    private NetworkChromosome selectParent() {
-        int tournamentSize = 3;
-        List<NetworkChromosome> tournament = new ArrayList<>();
-        Random random = new Random();
-
-        for (int i = 0; i < tournamentSize; i++) {
-            tournament.add(population.get(random.nextInt(population.size())));
-        }
-
-        return Collections.max(tournament, Comparator.comparingDouble(NetworkChromosome::getFitness));
-    }
-
-    @Override
-    public Agent solve(Environment environment) {
-        for (generation = 0; generation < maxGenerations; generation++) {
-            evaluateFitness(environment);
-            speciate();
-            reproduce();
-
-            if (isSolved(environment)) {
-                break;
-            }
-        }
-        return getBestAgent();
-    }
-
-    private boolean isSolved(Environment environment) {
-        return population.stream().anyMatch(environment::solved);
-    }
-
-    private Agent getBestAgent() {
-        return Collections.max(population, Comparator.comparingDouble(NetworkChromosome::getFitness));
+        compatibilityThreshold = Math.max(0.5, Math.min(5.0, compatibilityThreshold));  
     }
 
     @Override
     public int getGeneration() {
-        return generation;
+        return maxGenerations;
     }
 }

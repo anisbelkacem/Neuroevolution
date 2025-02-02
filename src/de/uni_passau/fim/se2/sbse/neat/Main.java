@@ -145,8 +145,9 @@ public class Main implements Callable<Integer> {
      * @return The initialised Neat algorithm.
      */
     public static Neuroevolution initialiseNeat(int populationSize, int maxGenerations) {
-        return new NEAT(populationSize, maxGenerations);
+        return new NEAT(populationSize, maxGenerations, 3.0, new Random());
     }
+    
     
     
 
