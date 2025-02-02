@@ -86,9 +86,8 @@ public class NEAT implements Neuroevolution {
             newPopulation.addAll(members.subList(0, eliteSize));
 
             while (newPopulation.size() < populationSize) {
-                NetworkChromosome parent1 = rankBasedSelection(members);
-                NetworkChromosome parent2 = rankBasedSelection(members);
-
+                NetworkChromosome parent1 = selectParent(members);
+                NetworkChromosome parent2 = selectParent(members);
 
                 NetworkChromosome offspring = crossover.apply(parent1, parent2);
                 offspring = mutation.apply(offspring);
@@ -99,22 +98,20 @@ public class NEAT implements Neuroevolution {
         population = newPopulation;
     }
 
-    private NetworkChromosome rankBasedSelection(List<NetworkChromosome> members) {
-        members.sort(Comparator.comparingDouble(NetworkChromosome::getFitness).reversed());
-    
-        double sumRanks = (members.size() * (members.size() + 1)) / 2.0;
-        double selectionValue = random.nextDouble() * sumRanks;
-    
-        double cumulativeRank = 0;
-        for (int i = 0; i < members.size(); i++) {
-            cumulativeRank += (members.size() - i);
-            if (cumulativeRank >= selectionValue) {
-                return members.get(i);
+    private NetworkChromosome selectParent(List<NetworkChromosome> speciesMembers) {
+        double totalFitness = speciesMembers.stream().mapToDouble(NetworkChromosome::getFitness).sum();
+        double selectionPoint = random.nextDouble() * totalFitness;
+        double runningSum = 0;
+
+        for (NetworkChromosome member : speciesMembers) {
+            runningSum += member.getFitness();
+            if (runningSum >= selectionPoint) {
+                return member;
             }
         }
-        return members.get(0);
+        return speciesMembers.get(0);
     }
-    
+
     private void evaluatePopulation(Environment environment) {
         for (NetworkChromosome chromosome : population) {
             chromosome.setFitness(environment.evaluate(chromosome));
@@ -165,16 +162,13 @@ public class NEAT implements Neuroevolution {
 
     private void adjustCompatibilityThreshold() {
         int numSpecies = species.size();
-        
         if (numSpecies < 5) {
-            compatibilityThreshold -= 0.3; 
+            compatibilityThreshold -= 0.3;
         } else if (numSpecies > 10) {
-            compatibilityThreshold += 0.3; 
+            compatibilityThreshold += 0.3;
         }
-    
         compatibilityThreshold = Math.max(0.5, Math.min(5.0, compatibilityThreshold));  
     }
-    
 
     @Override
     public int getGeneration() {
