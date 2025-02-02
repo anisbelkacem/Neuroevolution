@@ -132,29 +132,31 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
      * @return The mutated network chromosome.
      */
     public NetworkChromosome addConnection(NetworkChromosome parent) {
-        List<NeuronGene> neurons = new ArrayList<>();
-        parent.getLayers().values().forEach(neurons::addAll);
+        List<NeuronGene> networkNeurons = new ArrayList<>();
+        parent.getLayers().values().forEach(networkNeurons::addAll);
 
-        Set<String> existingConnections = new HashSet<>();
+        Set<String> existingLinks = new HashSet<>();
         for (ConnectionGene conn : parent.getConnections()) {
-            existingConnections.add(conn.getSourceNeuron().getId() + "-" + conn.getTargetNeuron().getId());
+            existingLinks.add(conn.getSourceNeuron().getId() + "->" + conn.getTargetNeuron().getId());
         }
 
-        NeuronGene source, target;
+        NeuronGene fromNeuron, toNeuron;
+        int attemptCount = 0;
         do {
-            source = neurons.get(random.nextInt(neurons.size()));
-            target = neurons.get(random.nextInt(neurons.size()));
-        } while (source.getNeuronType() == NeuronType.OUTPUT || target.getNeuronType() == NeuronType.INPUT || source == target || existingConnections.contains(source.getId() + "-" + target.getId()));
+            if (++attemptCount > networkNeurons.size() * networkNeurons.size()) return parent; // Avoid infinite loop
+            fromNeuron = networkNeurons.get(random.nextInt(networkNeurons.size()));
+            toNeuron = networkNeurons.get(random.nextInt(networkNeurons.size()));
+        } while (fromNeuron.getNeuronType() == NeuronType.OUTPUT || toNeuron.getNeuronType() == NeuronType.INPUT || fromNeuron.equals(toNeuron) || existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId()));
 
-        int newInnovationNumber = connectionCounter++;
-        innovations.add(new InnovationImpl(newInnovationNumber));
+        int freshInnovationNumber = connectionCounter++;
+        innovations.add(new InnovationImpl(freshInnovationNumber));
 
-        ConnectionGene newConnection = new ConnectionGene(source, target, random.nextDouble() * 2 - 1, true, newInnovationNumber);
+        ConnectionGene novelConnection = new ConnectionGene(fromNeuron, toNeuron, random.nextDouble() * 2 - 1, true, freshInnovationNumber);
 
-        List<ConnectionGene> newConnections = new ArrayList<>(parent.getConnections());
-        newConnections.add(newConnection);
+        List<ConnectionGene> revisedConnections = new ArrayList<>(parent.getConnections());
+        revisedConnections.add(novelConnection);
 
-        return new NetworkChromosome(parent.getLayers(), newConnections);
+        return new NetworkChromosome(parent.getLayers(), revisedConnections);
     }
 
     
