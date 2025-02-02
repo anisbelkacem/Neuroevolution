@@ -133,46 +133,46 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
      * @return The mutated network chromosome.
      */
     public NetworkChromosome addConnection(NetworkChromosome parent) {
-        List<NeuronGene> networkNeurons = new ArrayList<>();
-        parent.getLayers().values().forEach(networkNeurons::addAll);
+        List<NeuronGene> allNeurons = new ArrayList<>();
+        parent.getLayers().values().forEach(allNeurons::addAll);
 
-        Set<String> existingLinks = new HashSet<>();
+        Set<String> existingConnections = new HashSet<>();
         for (ConnectionGene conn : parent.getConnections()) {
-            existingLinks.add(conn.getSourceNeuron().getId() + "->" + conn.getTargetNeuron().getId());
+            existingConnections.add(conn.getSourceNeuron().getId() + "->" + conn.getTargetNeuron().getId());
         }
 
-        List<NeuronGene> potentialSources = new ArrayList<>();
-        List<NeuronGene> potentialTargets = new ArrayList<>();
+        List<NeuronGene> validSources = new ArrayList<>();
+        List<NeuronGene> validTargets = new ArrayList<>();
         
-        for (NeuronGene neuron : networkNeurons) {
+        for (NeuronGene neuron : allNeurons) {
             if (neuron.getNeuronType() != NeuronType.OUTPUT) {
-                potentialSources.add(neuron);
+                validSources.add(neuron);
             }
             if (neuron.getNeuronType() != NeuronType.INPUT) {
-                potentialTargets.add(neuron);
+                validTargets.add(neuron);
             }
         }
         
-        if (potentialSources.isEmpty() || potentialTargets.isEmpty()) return parent;
+        if (validSources.isEmpty() || validTargets.isEmpty()) return parent;
         
-        Collections.shuffle(potentialSources, random);
-        Collections.shuffle(potentialTargets, random);
+        Collections.shuffle(validSources, random);
+        Collections.shuffle(validTargets, random);
         
-        int maxAttempts = potentialSources.size() * potentialTargets.size();
-        int attempt = 0;
+        int maxRetries = validSources.size() * validTargets.size();
+        int attempts = 0;
         
-        while (attempt < maxAttempts) {
-            attempt++;
-            NeuronGene fromNeuron = potentialSources.get(random.nextInt(potentialSources.size()));
-            NeuronGene toNeuron = potentialTargets.get(random.nextInt(potentialTargets.size()));
+        while (attempts < maxRetries) {
+            attempts++;
+            NeuronGene startNeuron = validSources.get(random.nextInt(validSources.size()));
+            NeuronGene endNeuron = validTargets.get(random.nextInt(validTargets.size()));
             
-            if (!fromNeuron.equals(toNeuron) && !existingLinks.contains(fromNeuron.getId() + "->" + toNeuron.getId())) {
-                int freshInnovationNumber = connectionCounter++;
-                innovations.add(new InnovationImpl(freshInnovationNumber));
-                ConnectionGene novelConnection = new ConnectionGene(fromNeuron, toNeuron, random.nextDouble() * 2 - 1, true, freshInnovationNumber);
-                List<ConnectionGene> revisedConnections = new ArrayList<>(parent.getConnections());
-                revisedConnections.add(novelConnection);
-                return new NetworkChromosome(parent.getLayers(), revisedConnections);
+            if (!startNeuron.equals(endNeuron) && !existingConnections.contains(startNeuron.getId() + "->" + endNeuron.getId())) {
+                int uniqueInnovation = connectionCounter++;
+                innovations.add(new InnovationImpl(uniqueInnovation));
+                ConnectionGene freshConnection = new ConnectionGene(startNeuron, endNeuron, random.nextDouble() * 2 - 1, true, uniqueInnovation);
+                List<ConnectionGene> adjustedConnections = new ArrayList<>(parent.getConnections());
+                adjustedConnections.add(freshConnection);
+                return new NetworkChromosome(parent.getLayers(), adjustedConnections);
             }
         }
         return parent;
