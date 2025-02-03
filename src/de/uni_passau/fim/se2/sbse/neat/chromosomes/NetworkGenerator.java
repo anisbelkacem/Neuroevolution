@@ -1,6 +1,7 @@
 package de.uni_passau.fim.se2.sbse.neat.chromosomes;
 
 import de.uni_passau.fim.se2.sbse.neat.algorithms.innovations.Innovation;
+import de.uni_passau.fim.se2.sbse.neat.algorithms.innovations.InnovationImpl;
 
 import java.util.*;
 
@@ -54,35 +55,45 @@ public class NetworkGenerator {
      * @return a new network chromosome.
      */
     public NetworkChromosome generate() {
-        int i=0,j=0;
+        int i = 0, j = 0;
         Map<Double, List<NeuronGene>> layersMap = new HashMap<>();
         List<ConnectionGene> ListOfconnections = new ArrayList<>();
         List<NeuronGene> in_Neurons = new ArrayList<>();
         List<NeuronGene> out_Neurons = new ArrayList<>();
-        NeuronGene bias_Neuron = new NeuronGene(inputSize, ActivationFunction.NONE, NeuronType.BIAS);
-        in_Neurons.add(bias_Neuron);
-        while (i< inputSize || j < outputSize) {
-            if (i < inputSize) {
-                in_Neurons.add(new NeuronGene(i, ActivationFunction.NONE, NeuronType.INPUT));
-                i++;
-            }
-            if (j < outputSize) {
-                out_Neurons.add(new NeuronGene(inputSize + 1 + i, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
-                j++;
-            }
+        int biasId = -1;
+        NeuronGene biasNeuron = new NeuronGene(biasId, ActivationFunction.NONE, NeuronType.BIAS);
+        in_Neurons.add(biasNeuron);
+    
+
+        while (i < inputSize) {
+            in_Neurons.add(new NeuronGene(i, ActivationFunction.NONE, NeuronType.INPUT));
+            i++;
         }
-        layersMap.put(1.0, out_Neurons);
-        layersMap.put(0.0, in_Neurons);
-        int innovationCounter = 0;
+
+        while (j < outputSize) {
+            out_Neurons.add(new NeuronGene(inputSize + j, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
+            j++;
+        }
+    
+        layersMap.put(0.0, in_Neurons);  
+        layersMap.put(1.0, out_Neurons); 
+        for (NeuronGene outputNeuron : out_Neurons) {
+            int innovationNum = InnovationImpl.getInnovationNumber(biasNeuron, outputNeuron); 
+            double weight = random.nextDouble() * 2 - 1; 
+            ListOfconnections.add(new ConnectionGene(biasNeuron, outputNeuron, weight, true, innovationNum));
+        }
         for (NeuronGene inputNeuron : in_Neurons) {
+            if (inputNeuron.getNeuronType() == NeuronType.BIAS) continue; 
+            
             for (NeuronGene outputNeuron : out_Neurons) {
-                innovationCounter++;
+                int innovationNum = InnovationImpl.getInnovationNumber(inputNeuron, outputNeuron); 
                 double weight = random.nextDouble() * 2 - 1;
-                ListOfconnections.add(new ConnectionGene(inputNeuron, outputNeuron, weight, true, innovationCounter));
+                ListOfconnections.add(new ConnectionGene(inputNeuron, outputNeuron, weight, true, innovationNum));
             }
         }
         return new NetworkChromosome(layersMap, ListOfconnections);
     }
+    
 
     
 }

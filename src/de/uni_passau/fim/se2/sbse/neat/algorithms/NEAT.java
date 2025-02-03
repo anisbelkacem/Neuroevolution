@@ -1,181 +1,201 @@
 package de.uni_passau.fim.se2.sbse.neat.algorithms;
 
-import de.uni_passau.fim.se2.sbse.neat.algorithms.innovations.Innovation;
-import de.uni_passau.fim.se2.sbse.neat.chromosomes.*;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.ActivationFunction;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.Agent;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.ConnectionGene;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.NetworkChromosome;
 import de.uni_passau.fim.se2.sbse.neat.environments.Environment;
 import de.uni_passau.fim.se2.sbse.neat.mutation.NeatMutation;
 import de.uni_passau.fim.se2.sbse.neat.crossover.NeatCrossover;
+import de.uni_passau.fim.se2.sbse.neat.algorithms.Species;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.NeuronGene;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.NeuronType;
+import de.uni_passau.fim.se2.sbse.neat.algorithms.innovations.InnovationImpl;
 
 import java.util.*;
 
 public class NEAT implements Neuroevolution {
-
     private final int populationSize;
+    private final double mutationRate;
+    private final double crossoverRate;
     private final int maxGenerations;
-    private double compatibilityThreshold;
     private final Random random;
-    private final Set<Innovation> innovations;
-    private List<NetworkChromosome> population;
-    private Map<Integer, List<NetworkChromosome>> species;
+    private final List<NetworkChromosome> population;
+    private final List<Species> species;
+    private final NeatMutation mutator;
+    private final NeatCrossover crossover;
+    private int currentGeneration;
 
-    public NEAT(int populationSize, int maxGenerations, double compatibilityThreshold, Random random) {
+    public NEAT(int populationSize, double mutationRate, double crossoverRate, int maxGenerations, Random random) {
         this.populationSize = populationSize;
+        this.mutationRate = mutationRate;
+        this.crossoverRate = crossoverRate;
         this.maxGenerations = maxGenerations;
-        this.compatibilityThreshold = compatibilityThreshold;
         this.random = random;
-        this.innovations = new HashSet<>();
         this.population = new ArrayList<>();
-        this.species = new HashMap<>();
-
+        this.species = new ArrayList<>();
+        this.mutator = new NeatMutation(new HashSet<>(), random);
+        this.crossover = new NeatCrossover(random);
+        this.currentGeneration = 0;
     }
+
+    /**
+     * Initializes the population with minimal networks (input -> output only).
+     */
+    private void initializePopulation(Environment environment) {
+        for (int i = 0; i < populationSize; i++) {
+            NetworkChromosome network = generateMinimalNetwork(environment);
+            population.add(network);
+        }
+    }
+
+    /**
+     * Generates a minimal network (no hidden layers, just input -> output).
+     */
+    private NetworkChromosome generateMinimalNetwork(Environment environment) {
+        Map<Double, List<NeuronGene>> layers = new HashMap<>();
+        List<NeuronGene> inputNeurons = new ArrayList<>();
+        List<NeuronGene> outputNeurons = new ArrayList<>();
+    
+        // Create Bias Neuron
+        NeuronGene biasNeuron = new NeuronGene(-1, ActivationFunction.NONE, NeuronType.BIAS);
+        inputNeurons.add(biasNeuron);
+    
+        // Create Input Neurons (Dynamically set based on the environment's state size)
+        for (int i = 0; i < environment.stateSize(); i++) {
+            inputNeurons.add(new NeuronGene(i, ActivationFunction.NONE, NeuronType.INPUT));
+        }
+    
+        // Create Output Neuron(s) (Dynamically set based on the environment's action size)
+        for (int i = 0; i < environment.actionInputSize(); i++) {
+            outputNeurons.add(new NeuronGene(environment.stateSize() + i, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
+        }
+    
+        layers.put(0.0, inputNeurons);
+        layers.put(1.0, outputNeurons);
+    
+        // Create Initial Fully Connected Feedforward Network
+        List<ConnectionGene> connections = new ArrayList<>();
+        for (NeuronGene inputNeuron : inputNeurons) {
+            for (NeuronGene outputNeuron : outputNeurons) {
+                int innovation = InnovationImpl.getInnovationNumber(inputNeuron, outputNeuron);
+                connections.add(new ConnectionGene(inputNeuron, outputNeuron, random.nextDouble() * 2 - 1, true, innovation));
+            }
+        }
+        for (ConnectionGene conn : connections) {
+            System.out.println("Created connection: " + conn.getSourceNeuron().getId() + " -> " + conn.getTargetNeuron().getId() + " (Weight: " + conn.getWeight() + ")");
+        }
+        
+    
+        return new NetworkChromosome(layers, connections);
+    }
+    
+    
+
+    
 
     @Override
     public Agent solve(Environment environment) {
-        initialisePopulation(environment);
+        initializePopulation(environment); 
 
-        for (int generation = 0; generation < maxGenerations; generation++) {
-            assignToSpecies();
-            adjustCompatibilityThreshold();
-            evolveSpecies();
-            evaluatePopulation(environment);
+        for (currentGeneration = 1; currentGeneration <= maxGenerations; currentGeneration++) {
+            evaluateFitness(environment);
+            speciatePopulation();
+            reproduce();
 
-            NetworkChromosome bestAgent = getBestAgent();
-            //System.out.println("Generation " + generation + " Best Fitness: " + bestAgent.getFitness());
-            if (environment.solved(bestAgent)) {
-                System.out.println("Solution found in generation " + generation);
-                return bestAgent;
+            System.out.println("Generation " + currentGeneration + " - Best Fitness: " + getBestFitness());
+
+            if (checkSolution(environment)) {
+                System.out.println("Solution found at generation " + currentGeneration);
+                return getBestNetwork();
             }
         }
-
-        return getBestAgent();
+        return getBestNetwork(); 
     }
 
-    private void initialisePopulation(Environment environment) {
-        int inputSize = environment.stateSize();  
-        int outputSize = environment.actionInputSize(); 
-        
-        NetworkGenerator generator = new NetworkGenerator(innovations, inputSize, outputSize, random);
-        for (int i = 0; i < populationSize; i++) {
-            population.add(generator.generate());
+    /**
+     * Evaluates the fitness of each network in the population.
+     */
+    private void evaluateFitness(Environment environment) {
+        for (NetworkChromosome network : population) {
+            double fitness = environment.evaluate(network);
+            network.setFitness(fitness);
         }
     }
-    
 
-    private void assignToSpecies() {
-        species.clear();
-        for (NetworkChromosome chromosome : population) {
-            boolean assigned = false;
-            for (int speciesId : species.keySet()) {
-                NetworkChromosome representative = species.get(speciesId).get(0);
-                if (computeCompatibilityDistance(chromosome, representative) < compatibilityThreshold) {
-                    species.get(speciesId).add(chromosome);
-                    assigned = true;
+    /**
+     * Groups the population into species based on genetic similarity.
+     */
+    private void speciatePopulation() {
+        for (NetworkChromosome network : population) {
+            boolean added = false;
+            for (Species s : species) {
+                if (s.belongsToSpecies(network)) {
+                    s.addMember(network);
+                    added = true;
                     break;
                 }
             }
-            if (!assigned) {
-                int newSpeciesId = species.size();
-                species.put(newSpeciesId, new ArrayList<>(List.of(chromosome)));
+            if (!added) {
+                species.add(new Species(network));
             }
         }
     }
 
-    private void evolveSpecies() {
+    /**
+     * Reproduces new offspring using crossover and mutation.
+     */
+    private void reproduce() {
         List<NetworkChromosome> newPopulation = new ArrayList<>();
-        NeatMutation mutation = new NeatMutation(innovations, random);
-        NeatCrossover crossover = new NeatCrossover(random);
 
-        for (List<NetworkChromosome> members : species.values()) {
-            members.sort(Comparator.comparingDouble(NetworkChromosome::getFitness).reversed());
-            int eliteSize = Math.max(1, members.size() / 5);
-            newPopulation.addAll(members.subList(0, eliteSize));
-
-            while (newPopulation.size() < populationSize) {
-                NetworkChromosome parent1 = selectParent(members);
-                //NetworkChromosome parent2 = selectParent(members);
-
-                //NetworkChromosome offspring = crossover.apply(parent1, parent2);
-                NetworkChromosome offspring = mutation.apply(parent1);
-                newPopulation.add(offspring);
+        for (Species s : species) {
+            s.computeAdjustedFitness();
+            List<NetworkChromosome> offspring = new ArrayList<>();
+            
+            for (NetworkChromosome parent : s.getMembers()) {
+                if (random.nextDouble() < crossoverRate) {
+                    NetworkChromosome parent2 = s.getMembers().get(random.nextInt(s.getMembers().size()));
+                    offspring.add(crossover.apply(parent, parent2));
+                } else {
+                    offspring.add(new NetworkChromosome(parent.getLayers(), parent.getConnections()));
+                }
             }
-        }
-        population = newPopulation;
-    }
-    
-    private NetworkChromosome selectParent(List<NetworkChromosome> speciesMembers) {
-        double totalFitness = speciesMembers.stream().mapToDouble(NetworkChromosome::getFitness).sum();
-        double selectionPoint = random.nextDouble() * totalFitness;
-        double runningSum = 0;
 
-        for (NetworkChromosome member : speciesMembers) {
-            runningSum += member.getFitness();
-            if (runningSum >= selectionPoint) {
-                return member;
+            for (int i = 0; i < offspring.size(); i++) {
+                if (random.nextDouble() < mutationRate) {
+                    offspring.set(i, mutator.apply(offspring.get(i)));
+                }
             }
+            newPopulation.addAll(offspring);
         }
-        return speciesMembers.get(0);
+
+        this.population.clear();
+        this.population.addAll(newPopulation);
     }
 
-    private void evaluatePopulation(Environment environment) {
-        for (NetworkChromosome chromosome : population) {
-            chromosome.setFitness(environment.evaluate(chromosome));
-        }
+    /**
+     * Returns the best fitness score in the population.
+     */
+    private double getBestFitness() {
+        return population.stream().mapToDouble(NetworkChromosome::getFitness).max().orElse(0);
     }
 
-    private NetworkChromosome getBestAgent() {
-        return population.stream().max(Comparator.comparingDouble(NetworkChromosome::getFitness)).orElseThrow();
+    /**
+     * Returns the best network in the population.
+     */
+    private NetworkChromosome getBestNetwork() {
+        return population.stream().max(Comparator.comparingDouble(NetworkChromosome::getFitness)).orElse(null);
     }
 
-    private double computeCompatibilityDistance(NetworkChromosome a, NetworkChromosome b) {
-        int disjoint = 0, excess = 0, matching = 0;
-        double weightDiff = 0.0;
-
-        Set<Integer> innovationsA = new HashSet<>();
-        Set<Integer> innovationsB = new HashSet<>();
-
-        for (ConnectionGene conn : a.getConnections()) {
-            innovationsA.add(conn.getInnovationNumber());
-        }
-        for (ConnectionGene conn : b.getConnections()) {
-            innovationsB.add(conn.getInnovationNumber());
-        }
-
-        for (int innovation : innovationsA) {
-            if (innovationsB.contains(innovation)) {
-                matching++;
-                weightDiff += Math.abs(a.getConnections().stream()
-                        .filter(c -> c.getInnovationNumber() == innovation)
-                        .findFirst().get().getWeight() - 
-                        b.getConnections().stream()
-                        .filter(c -> c.getInnovationNumber() == innovation)
-                        .findFirst().get().getWeight());
-            } else {
-                disjoint++;
-            }
-        }
-
-        for (int innovation : innovationsB) {
-            if (!innovationsA.contains(innovation)) {
-                excess++;
-            }
-        }
-
-        double N = Math.max(innovationsA.size(), innovationsB.size());
-        return (disjoint + excess) / N + (weightDiff / Math.max(1, matching));
-    }
-
-    private void adjustCompatibilityThreshold() {
-        int numSpecies = species.size();
-        if (numSpecies < 5) {
-            compatibilityThreshold -= 0.3;
-        } else if (numSpecies > 10) {
-            compatibilityThreshold += 0.3;
-        }
-        compatibilityThreshold = Math.max(0.5, Math.min(5.0, compatibilityThreshold));  
+    /**
+     * Checks if the best network in the population has solved the environment.
+     */
+    private boolean checkSolution(Environment environment) {
+        return population.stream().anyMatch(environment::solved);
     }
 
     @Override
     public int getGeneration() {
-        return maxGenerations;
+        return currentGeneration;
     }
 }

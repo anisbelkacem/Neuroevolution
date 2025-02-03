@@ -8,30 +8,41 @@ public class NeuronGene {
     private final ActivationFunction activationFunction;
     private final NeuronType neuronType;
 
-    // TODO: It's your job to implement this class.
-    //  Please do not change the signature of the given constructor and methods and ensure to implement them.
-    //  You can add additional methods, fields, and constructors if needed.
-
     /**
      * Creates a new neuron with the given ID and activation function.
      *
      * @param id                 The ID of the neuron.
-     * @param activationFunction The activation function of the neuron.
+     * @param activationFunction The activation function of the neuron (ignored for bias neurons).
+     * @param neuronType         The type of the neuron (INPUT, HIDDEN, OUTPUT, or BIAS).
      */
     public NeuronGene(int id, ActivationFunction activationFunction, NeuronType neuronType) {
         this.id = id;
-        this.activationFunction = activationFunction;
+        this.activationFunction = (neuronType == NeuronType.BIAS) ? null : activationFunction;
         this.neuronType = neuronType;
     }
 
     public int getId() {
         return id;
     }
+
     public ActivationFunction getActivationFunction() {
         return activationFunction;
     }
+
     public NeuronType getNeuronType() {
         return neuronType;
+    }
+
+    /**
+     * Returns the output of the neuron.
+     * - If this is a Bias Node, it always returns 1.0.
+     * - Otherwise, it applies the activation function.
+     */
+    public double getOutput(double inputSum) {
+        if (neuronType == NeuronType.BIAS) {
+            return 1.0;  // Bias neurons always output 1
+        }
+        return activationFunction.apply(inputSum);
     }
 
     @Override
@@ -51,9 +62,8 @@ public class NeuronGene {
     public String toString() {
         return "NeuronGene{" +
                 "id=" + id +
-                ", activationFunction=" + activationFunction +
+                ", activationFunction=" + (activationFunction == null ? "None (Bias Node)" : activationFunction) +
                 ", neuronType=" + neuronType +
                 '}';
     }
-    
 }
