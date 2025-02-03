@@ -40,7 +40,7 @@ public class NEAT implements Neuroevolution {
             evaluatePopulation(environment);
 
             NetworkChromosome bestAgent = getBestAgent();
-            System.out.println("Generation " + generation + " Best Fitness: " + bestAgent.getFitness());
+            //System.out.println("Generation " + generation + " Best Fitness: " + bestAgent.getFitness());
             if (environment.solved(bestAgent)) {
                 System.out.println("Solution found in generation " + generation);
                 return bestAgent;
@@ -92,23 +92,14 @@ public class NEAT implements Neuroevolution {
 
             while (newPopulation.size() < populationSize) {
                 NetworkChromosome parent1 = selectParent(members);
-                NetworkChromosome parent2 = selectParent(members);
+                //NetworkChromosome parent2 = selectParent(members);
 
-                NetworkChromosome offspring = crossover.apply(parent1, parent2);
-                offspring = mutation.apply(offspring);
-                double mutation_Rate = random.nextDouble();
-                if (mutation_Rate < 0.7) {
-                    offspring = mutation.addNeuron(offspring);
-                } else if (mutation_Rate < 0.85) {
-                    offspring = mutation.addConnection(offspring);
-                } else {
-                    offspring = mutation.mutateWeights(offspring);
-                }
+                //NetworkChromosome offspring = crossover.apply(parent1, parent2);
+                NetworkChromosome offspring = mutation.apply(parent1);
                 newPopulation.add(offspring);
             }
         }
-
-        //population = newPopulation;
+        population = newPopulation;
     }
     
     private NetworkChromosome selectParent(List<NetworkChromosome> speciesMembers) {
