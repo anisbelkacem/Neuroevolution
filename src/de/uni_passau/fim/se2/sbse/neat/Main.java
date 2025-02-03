@@ -148,8 +148,8 @@ public class Main implements Callable<Integer> {
         double mutationRate = 0.5; 
         double crossoverRate = 0.7; 
         Random random = new Random();
-        throw new RuntimeException("Not implemented");
-        //return new NEAT(populationSize, mutationRate, crossoverRate, maxGenerations, random);
+        //throw new RuntimeException("Not implemented");
+        return new NEAT(populationSize, mutationRate, crossoverRate, maxGenerations, random);
     }
     
     

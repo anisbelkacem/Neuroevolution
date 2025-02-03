@@ -57,38 +57,46 @@ public class NEAT implements Neuroevolution {
         List<NeuronGene> inputNeurons = new ArrayList<>();
         List<NeuronGene> outputNeurons = new ArrayList<>();
     
-        // Create Bias Neuron
+        
         NeuronGene biasNeuron = new NeuronGene(-1, ActivationFunction.NONE, NeuronType.BIAS);
         inputNeurons.add(biasNeuron);
     
-        // Create Input Neurons (Dynamically set based on the environment's state size)
+
         for (int i = 0; i < environment.stateSize(); i++) {
             inputNeurons.add(new NeuronGene(i, ActivationFunction.NONE, NeuronType.INPUT));
         }
-    
-        // Create Output Neuron(s) (Dynamically set based on the environment's action size)
         for (int i = 0; i < environment.actionInputSize(); i++) {
-            outputNeurons.add(new NeuronGene(environment.stateSize() + i, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
+            outputNeurons.add(new NeuronGene(environment.stateSize(), ActivationFunction.SIGMOID, NeuronType.OUTPUT));
         }
     
         layers.put(0.0, inputNeurons);
         layers.put(1.0, outputNeurons);
     
-        // Create Initial Fully Connected Feedforward Network
+        
         List<ConnectionGene> connections = new ArrayList<>();
+    
+        
         for (NeuronGene inputNeuron : inputNeurons) {
             for (NeuronGene outputNeuron : outputNeurons) {
                 int innovation = InnovationImpl.getInnovationNumber(inputNeuron, outputNeuron);
                 connections.add(new ConnectionGene(inputNeuron, outputNeuron, random.nextDouble() * 2 - 1, true, innovation));
             }
         }
-        for (ConnectionGene conn : connections) {
-            System.out.println("Created connection: " + conn.getSourceNeuron().getId() + " -> " + conn.getTargetNeuron().getId() + " (Weight: " + conn.getWeight() + ")");
+    
+        for (NeuronGene outputNeuron : outputNeurons) {
+            int innovation = InnovationImpl.getInnovationNumber(biasNeuron, outputNeuron);
+            connections.add(new ConnectionGene(biasNeuron, outputNeuron, random.nextDouble() * 2 - 1, true, innovation));
         }
+    
         
+        for (ConnectionGene conn : connections) {
+            System.out.println("Created connection: " + conn.getSourceNeuron().getId() + " -> " + conn.getTargetNeuron().getId() +
+                    " (Weight: " + conn.getWeight() + ")");
+        }
     
         return new NetworkChromosome(layers, connections);
     }
+    
     
     
 
@@ -96,7 +104,7 @@ public class NEAT implements Neuroevolution {
 
     @Override
     public Agent solve(Environment environment) {
-        initializePopulation(environment); 
+        initializePopulation(environment); // Pass environment
 
         for (currentGeneration = 1; currentGeneration <= maxGenerations; currentGeneration++) {
             evaluateFitness(environment);
@@ -109,9 +117,13 @@ public class NEAT implements Neuroevolution {
                 System.out.println("Solution found at generation " + currentGeneration);
                 return getBestNetwork();
             }
+
+            
+            environment.resetState();
         }
         return getBestNetwork(); 
     }
+
 
     /**
      * Evaluates the fitness of each network in the population.
@@ -127,6 +139,8 @@ public class NEAT implements Neuroevolution {
      * Groups the population into species based on genetic similarity.
      */
     private void speciatePopulation() {
+        species.clear(); 
+    
         for (NetworkChromosome network : population) {
             boolean added = false;
             for (Species s : species) {
@@ -137,10 +151,17 @@ public class NEAT implements Neuroevolution {
                 }
             }
             if (!added) {
-                species.add(new Species(network));
+                species.add(new Species(network)); 
             }
         }
+    
+        
+        for (Species s : species) {
+            s.computeAdjustedFitness();
+            Collections.sort(s.getMembers(), Comparator.comparingDouble(NetworkChromosome::getFitness).reversed());
+        }
     }
+    
 
     /**
      * Reproduces new offspring using crossover and mutation.
