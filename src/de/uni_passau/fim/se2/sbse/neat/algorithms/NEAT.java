@@ -40,15 +40,16 @@ public class NEAT implements Neuroevolution {
     public Agent solve(Environment environment) {
         this.environment = environment;
         //System.out.println("creating initial pop! ");
-        initializePopulation();
+        initializePopulation(environment);
         //System.out.println("intialze Pop Done! ");
         while (!environment.solved(getBestAgent()) && generation < maxGenerations) {
             evaluatePopulation();
             speciatePopulation();
             nextGeneration();
-            //System.out.println("Generation " + generation + " Best Fitness: " + getBestAgent().getFitness());
+            System.out.println("Generation " + generation + " Best Fitness: " + getBestAgent().getFitness());
             generation++;
         }
+        System.out.println("solved on " + generation + "with  Best Fitness: " + getBestAgent().getFitness());
         return getBestAgent();
     }
 
@@ -57,15 +58,19 @@ public class NEAT implements Neuroevolution {
         return generation;
     }
 
-    private void initializePopulation() {
+    private void initializePopulation(Environment environment) {
     Set<Innovation> globalInnovations = new HashSet<>(); 
+    String typeofenvironement="";
+    if (environment instanceof de.uni_passau.fim.se2.sbse.neat.environments.XOR )typeofenvironement ="XOR";
+    if (environment instanceof de.uni_passau.fim.se2.sbse.neat.environments.SinglePoleBalancing )typeofenvironement ="CART";
+
     for (int i = 0; i < populationSize; i++) {
         NetworkChromosome chromosome = new NetworkGenerator(
             globalInnovations, 
             environment.stateSize(), 
             environment.actionInputSize(), 
             random
-        ).generate();
+        ).generate(typeofenvironement);
         
         addToSpecies(chromosome); 
     }
@@ -106,7 +111,7 @@ private void evaluatePopulation() {
 
         // **Apply Fitness Sharing (Less Aggressive)**
         for (NetworkChromosome agent : species.getMembers()) {
-            double sharedFitness = agent.getFitness() ;
+            double sharedFitness = agent.getFitness();
             agent.setFitness(sharedFitness);
         }
     }
@@ -236,7 +241,7 @@ private void evaluatePopulation() {
             addToSpecies(agent);
         }
     
-        generation++;
+        //generation++;
         //System.out.println("---- Generation " + generation + " completed. ----");
     }
     

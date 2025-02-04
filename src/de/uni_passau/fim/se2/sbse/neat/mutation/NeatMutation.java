@@ -27,15 +27,23 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome apply(NetworkChromosome parent) {
 
         double mutationChance = random.nextDouble();
-        if (mutationChance < 0.25) {
+        return mutateWeights(parent);
+        /*if (mutationChance < 0.25) {
+            System.out.println("add weight");
+
             return mutateWeights(parent);
         } else if (mutationChance < 0.50) {
+            System.out.println("add toggle");
+
             return toggleConnection(parent);
         } else if (mutationChance < 0.75) {
+            System.out.println("add connection");
+
             return addConnection(parent);
         } else {
+            System.out.println("add Neuron");
             return addNeuron(parent);
-        }
+        }*/
     }
 
     private synchronized int getOrCreateInnovationNumber(NeuronGene from, NeuronGene to) {
