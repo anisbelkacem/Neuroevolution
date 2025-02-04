@@ -17,6 +17,8 @@ public class NEAT implements Neuroevolution {
     private final NeatMutation mutation;
     private final NeatCrossover crossover;
     private int generation;
+        private double bestFitness = 0;
+    private int stagnationCounter = 0;
 
     public NEAT(int populationSize, int maxGenerations, Random random) {
         this.populationSize = populationSize;
@@ -53,18 +55,33 @@ public class NEAT implements Neuroevolution {
     }
 
     private void evaluatePopulation() {
+        Map<NetworkChromosome, Integer> speciesCounts = new HashMap<>();
         for (NetworkChromosome agent : population) {
             double fitness = environment.evaluate(agent);
             agent.setFitness(fitness);
+            speciesCounts.put(agent, speciesCounts.getOrDefault(agent, 0) + 1);
+        }
+    
+        for (NetworkChromosome agent : population) {
+            agent.setFitness(agent.getFitness() / speciesCounts.get(agent));  
         }
     }
+    
 
     private NetworkChromosome selectParent() {
-        List<NetworkChromosome> sorted = new ArrayList<>(population);
-        sorted.sort(Comparator.comparingDouble(NetworkChromosome::getFitness).reversed());
-        return sorted.get(random.nextInt(Math.max(1, populationSize / 5))); // Tournament Selection
+        double totalFitness = population.stream().mapToDouble(NetworkChromosome::getFitness).sum();
+        double r = random.nextDouble() * totalFitness;
+        double cumulativeFitness = 0;
+    
+        for (NetworkChromosome agent : population) {
+            cumulativeFitness += agent.getFitness();
+            if (cumulativeFitness >= r) {
+                return agent;
+            }
+        }
+        return population.iterator().next();
     }
-
+    
     private void nextGeneration() {
         List<NetworkChromosome> newPopulation = new ArrayList<>();
         while (newPopulation.size() < populationSize) {
