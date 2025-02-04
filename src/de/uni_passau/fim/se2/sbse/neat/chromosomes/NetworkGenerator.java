@@ -117,11 +117,11 @@ public class NetworkGenerator {
         layersMap.put(0.0, in_Neurons);  
         layersMap.put(1.0, out_Neurons); 
         
-        for (NeuronGene outputNeuron : out_Neurons) {
+        /*for (NeuronGene outputNeuron : out_Neurons) {
             int innovationNum = InnovationImpl.getInnovationNumber(biasNeuron, outputNeuron);
             double weight = random.nextDouble() * 2 - 1; 
             ListOfconnections.add(new ConnectionGene(biasNeuron, outputNeuron, weight, true, innovationNum));
-        }
+        }*/
         
         // **Modify network initialization based on task**
         if (taskType.equals("XOR")) {

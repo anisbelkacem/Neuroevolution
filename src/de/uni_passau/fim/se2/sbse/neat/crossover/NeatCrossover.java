@@ -94,16 +94,6 @@ public class NeatCrossover implements Crossover<NetworkChromosome> {
         return new NetworkChromosome(offspringLayers, offspringConnections);
     }
 
-    private ConnectionGene copyConnectionGene(ConnectionGene original) {
-        return new ConnectionGene(
-            original.getSourceNeuron(),
-            original.getTargetNeuron(),
-            original.getWeight(),
-            original.getEnabled(),
-            original.getInnovationNumber()
-        );
-    }
-
     private NeuronGene copyNeuronGene(NeuronGene original) {
         return new NeuronGene(original.getId(), original.getActivationFunction(), original.getNeuronType());
     }

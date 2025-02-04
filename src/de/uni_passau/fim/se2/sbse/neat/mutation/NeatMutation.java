@@ -27,7 +27,12 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome apply(NetworkChromosome parent) {
 
         double mutationChance = random.nextDouble();
-        return mutateWeights(parent);
+        if (mutationChance < 0.8) {
+        return mutateWeights(parent);}
+        else return parent;
+        //return toggleConnection(parent);
+        //return addNeuron(parent);
+        //return addConnection(parent);
         /*if (mutationChance < 0.25) {
             System.out.println("add weight");
 
@@ -184,9 +189,9 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome mutateWeights(NetworkChromosome parent) {
         List<ConnectionGene> updatedConnections = new ArrayList<>();
         for (ConnectionGene connection : parent.getConnections()) {
-            double weightChange = (random.nextDouble() < 0.9) 
-                ? (random.nextGaussian() * 0.7)  // Larger updates
-                : (random.nextGaussian() * 2.5); // Occasionally make big jumps
+            double weightChange = (random.nextDouble() < 1) 
+                ? (random.nextGaussian() * 5.0)  // Larger updates
+                : (random.nextGaussian() * 5.0); // Occasionally make big jumps
             double newWeight = connection.getWeight() + weightChange;
             
             updatedConnections.add(new ConnectionGene(
