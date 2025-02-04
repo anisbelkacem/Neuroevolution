@@ -1,11 +1,14 @@
 package de.uni_passau.fim.se2.sbse.neat.algorithms;
+
 import de.uni_passau.fim.se2.sbse.neat.chromosomes.NetworkChromosome;
+import de.uni_passau.fim.se2.sbse.neat.mutation.NeatMutation;
+import de.uni_passau.fim.se2.sbse.neat.crossover.NeatCrossover;
+
 import java.util.*;
 
 public class Species {
+    private final NetworkChromosome representative;
     private final List<NetworkChromosome> members;
-    private NetworkChromosome representative;
-    private double adjustedFitness;
 
     public Species(NetworkChromosome representative) {
         this.representative = representative;
@@ -13,118 +16,122 @@ public class Species {
         this.members.add(representative);
     }
 
-    /**
-     * Computes the genetic distance between this species and a given network.
-     * The formula: δ = (c1 * D / N) + (c2 * E / N) + (c3 * W̄)
-     * Where:
-     * - D = Number of disjoint genes
-     * - E = Number of excess genes
-     * - W̄ = Average weight difference of matching genes
-     */
-    public double computeDistance(NetworkChromosome other, double c1, double c2, double c3) {
-        int matchingGenes = 0;
-        int disjointGenes = 0;
-        int excessGenes = 0;
-        double weightDifferenceSum = 0.0;
+    public void addMember(NetworkChromosome chromosome) {
+        members.add(chromosome);
+    }
 
-        Map<Integer, Double> parentWeights = new HashMap<>();
-        for (var connection : representative.getConnections()) {
-            parentWeights.put(connection.getInnovationNumber(), connection.getWeight());
+    public boolean isCompatible(NetworkChromosome chromosome) {
+        return calculateCompatibilityDistance(representative, chromosome) < NEAT.COMPATIBILITY_THRESHOLD;
+    }
+
+    public void adjustFitness() {
+        for (NetworkChromosome member : members) {
+            member.setFitness(member.getFitness());
         }
+    }
 
-        int maxInnovationRep = representative.getConnections().stream()
-                .mapToInt(c -> c.getInnovationNumber()).max().orElse(0);
-        int maxInnovationOther = other.getConnections().stream()
-                .mapToInt(c -> c.getInnovationNumber()).max().orElse(0);
-        int maxInnovation = Math.max(maxInnovationRep, maxInnovationOther);
-
-        Map<Integer, Double> otherWeights = new HashMap<>();
-        for (var connection : other.getConnections()) {
-            otherWeights.put(connection.getInnovationNumber(), connection.getWeight());
+    public void reproduce(NeatMutation mutation, NeatCrossover crossover, List<NetworkChromosome> newPopulation, int totalPopulation, Random random) {
+        //System.out.println("  -> Starting reproduction for Species " + this.hashCode() + " | Members: " + members.size());
+    
+        if (members.isEmpty()) {
+            //System.err.println("  -> ERROR: Species " + this.hashCode() + " has no members! Skipping reproduction.");
+            return;
         }
-
-        for (var innovation : parentWeights.keySet()) {
-            if (otherWeights.containsKey(innovation)) {
-                matchingGenes++;
-                weightDifferenceSum += Math.abs(parentWeights.get(innovation) - otherWeights.get(innovation));
-            } else {
-                
-                disjointGenes++;
+    
+        NetworkChromosome bestAgent = members.stream().max(Comparator.comparingDouble(NetworkChromosome::getFitness)).orElseThrow();
+        newPopulation.add(bestAgent);
+        //System.out.println("  -> Best agent added to new population. Fitness: " + bestAgent.getFitness());
+    
+        int offspringCount = 0;
+        while (newPopulation.size() < totalPopulation / 2) {
+            NetworkChromosome parent1 = selectParent();
+            NetworkChromosome parent2 = selectParent();
+    
+            if (parent1 == null || parent2 == null) {
+                //System.err.println("  -> ERROR: Parent selection failed in Species " + this.hashCode());
+                continue;
             }
-        }
+    
+            //System.out.println("  -> Selected Parents | P1 Fitness: " + parent1.getFitness() + " | P2 Fitness: " + parent2.getFitness());
+            
+            //System.out.println("  -> applying crossover");
+    
+            NetworkChromosome offspring = crossover.apply(parent1, parent2);
+            //System.out.println("  ->  crossover done , applying mutation ");
 
-        for (var innovation : otherWeights.keySet()) {
-            if (!parentWeights.containsKey(innovation)) {
-                disjointGenes++;
-            }
-        }
-
-        excessGenes = maxInnovation - Collections.max(parentWeights.keySet());
-
-        int N = Math.max(representative.getConnections().size(), other.getConnections().size());
-        if (N < 20) N = 1; 
-
-        double avgWeightDiff = (matchingGenes > 0) ? (weightDifferenceSum / matchingGenes) : 0.0;
-
-        return ((c1 * disjointGenes) / N) + ((c2 * excessGenes) / N) + (c3 * avgWeightDiff);
-    }
-
-    /**
-     * Determines if a given network should belong to this species.
-     */
-    public boolean belongsToSpecies(NetworkChromosome network,double compatibilityThreshold ) {
-        return computeDistance(network, 1.0, 1.0, 0.4) < compatibilityThreshold;
-    }
-
-    /**
-     * Adds a new network to this species.
-     */
-    public void addMember(NetworkChromosome network) {
-        members.add(network);
-    }
-
-    /**
-     * Clears members except the representative, preparing for a new generation.
-     */
-    public void reset() {
-        members.clear();
-        members.add(representative);
-    }
-
-    /**
-     * Computes the adjusted fitness of the species.
-     */
-    public void computeAdjustedFitness() {
-        double totalFitness = members.stream().mapToDouble(NetworkChromosome::getFitness).sum();
-        adjustedFitness = totalFitness / members.size(); // Fitness sharing
-    }
-
-    /**
-     * Returns the best performing network in this species.
-     */
-    public NetworkChromosome getBestNetwork() {
-        return members.stream().max(Comparator.comparingDouble(NetworkChromosome::getFitness)).orElse(representative);
-    }
+            offspring = mutation.apply(offspring);
+            //System.out.println("  -> mutation done ");
 
     
-    public NetworkChromosome reproduce() {
-        members.sort(Comparator.comparingDouble(NetworkChromosome::getFitness).reversed());
-        return members.get(0); 
+            if (offspring == null) {
+                //System.err.println("  -> ERROR: Crossover or mutation failed, offspring is null!");
+                continue;
+            }
+    
+            newPopulation.add(offspring);
+            offspringCount++;
+            //System.out.println("  -> Offspring " + offspringCount + " added to new population.");
+        }
+    
+        //System.out.println("  -> Species " + this.hashCode() + " reproduction complete. Created " + offspringCount + " offspring.");
+    }
+    
+
+    public NetworkChromosome selectParent() {
+        if (members.isEmpty()) {
+            //System.err.println("  -> ERROR: selectParent() called on empty species!");
+            return null;
+        }
+    
+        double totalFitness = members.stream().mapToDouble(NetworkChromosome::getFitness).sum();
+        if (totalFitness <= 0) {
+            //System.err.println("  -> WARNING: Total fitness is non-positive (" + totalFitness + ") in selectParent(). Selecting randomly.");
+            return members.get(new Random().nextInt(members.size()));
+        }
+    
+        double r = new Random().nextDouble() * totalFitness;
+        double cumulativeFitness = 0;
+    
+        for (NetworkChromosome member : members) {
+            cumulativeFitness += member.getFitness();
+            if (cumulativeFitness >= r) {
+                //System.out.println("  -> Selected Parent with Fitness: " + member.getFitness());
+                return member;
+            }
+        }
+    
+        //System.err.println("  -> ERROR: selectParent() failed to select a valid parent. Selecting randomly.");
+        return members.get(new Random().nextInt(members.size()));
+    }
+    
+
+    public void clear() {
+        members.clear();
+    }
+
+    public NetworkChromosome getRandomMember() {
+        return members.get(new Random().nextInt(members.size()));
     }
 
     public List<NetworkChromosome> getMembers() {
         return members;
     }
 
-    public NetworkChromosome getRepresentative() {
-        return representative;
-    }
+    private double calculateCompatibilityDistance(NetworkChromosome a, NetworkChromosome b) {
+        int excess = 0, disjoint = 0;
+        double weightDifference = 0;
 
-    public void setRepresentative(NetworkChromosome representative) {
-        this.representative = representative;
-    }
+        for (int i = 0; i < a.getConnections().size(); i++) {
+            if (i >= b.getConnections().size()) {
+                excess++;
+            } else if (a.getConnections().get(i).getInnovationNumber() != b.getConnections().get(i).getInnovationNumber()) {
+                disjoint++;
+            } else {
+                weightDifference += Math.abs(a.getConnections().get(i).getWeight() - b.getConnections().get(i).getWeight());
+            }
+        }
 
-    public double getAdjustedFitness() {
-        return adjustedFitness;
+        return (NEAT.EXCESS_COEFFICIENT * excess + NEAT.DISJOINT_COEFFICIENT * disjoint) / Math.max(a.getConnections().size(), b.getConnections().size())
+            + NEAT.WEIGHT_COEFFICIENT * (weightDifference / a.getConnections().size());
     }
 }
