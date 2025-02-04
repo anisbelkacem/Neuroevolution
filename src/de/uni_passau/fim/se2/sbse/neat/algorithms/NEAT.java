@@ -20,10 +20,10 @@ public class NEAT implements Neuroevolution {
     private final NeatCrossover crossover;
     private int generation;
 
-    public static final double COMPATIBILITY_THRESHOLD = 0.3;
-    public static final double EXCESS_COEFFICIENT = 0.5;
-    public static final double DISJOINT_COEFFICIENT = 0.5;
-    public static final double WEIGHT_COEFFICIENT = 0.2;
+    public static final double COMPATIBILITY_THRESHOLD = 1.5;
+    public static final double EXCESS_COEFFICIENT = 1.0;
+    public static final double DISJOINT_COEFFICIENT = 1.0;
+    public static final double WEIGHT_COEFFICIENT = 0.4;
 
     public NEAT(int populationSize, int maxGenerations, Random random) {
         this.populationSize = Math.max(50, populationSize);
@@ -186,7 +186,13 @@ private void evaluatePopulation() {
             }
             species.reproduce(mutation, crossover, newPopulation, populationSize, random);
 
-            
+            try {
+                //System.err.println("trying to reproduce");
+            } catch (Exception e) {
+                //System.err.println("ERROR: Exception in species reproduction for species " + species.hashCode());
+                e.printStackTrace();
+                continue;
+            }
         }
         
         
