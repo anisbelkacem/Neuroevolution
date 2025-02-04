@@ -176,9 +176,9 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome mutateWeights(NetworkChromosome parent) {
         List<ConnectionGene> updatedConnections = new ArrayList<>();
         for (ConnectionGene connection : parent.getConnections()) {
-            double weightChange = (random.nextDouble() < 0.8) 
-                ? (random.nextGaussian() * 0.5)  // Larger updates
-                : (random.nextGaussian() * 2.0); // Occasionally make big jumps
+            double weightChange = (random.nextDouble() < 0.9) 
+                ? (random.nextGaussian() * 0.7)  // Larger updates
+                : (random.nextGaussian() * 2.5); // Occasionally make big jumps
             double newWeight = connection.getWeight() + weightChange;
             
             updatedConnections.add(new ConnectionGene(

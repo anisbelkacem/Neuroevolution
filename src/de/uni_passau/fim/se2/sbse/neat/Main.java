@@ -145,11 +145,9 @@ public class Main implements Callable<Integer> {
      * @return The initialised Neat algorithm.
      */
     public static Neuroevolution initialiseNeat(int populationSize, int maxGenerations) {
-        double mutationRate = 0.5; 
-        double crossoverRate = 0.7; 
         Random random = new Random();
         //throw new RuntimeException("Not implemented");
-        return new NEAT(populationSize, mutationRate, crossoverRate, maxGenerations, random);
+        return new NEAT(populationSize, maxGenerations, random);
     }
     
     

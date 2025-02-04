@@ -6,7 +6,6 @@ public class Species {
     private final List<NetworkChromosome> members;
     private NetworkChromosome representative;
     private double adjustedFitness;
-    private double compatibilityThreshold = 3.0; // Initial speciation threshold
 
     public Species(NetworkChromosome representative) {
         this.representative = representative;
@@ -73,7 +72,7 @@ public class Species {
     /**
      * Determines if a given network should belong to this species.
      */
-    public boolean belongsToSpecies(NetworkChromosome network) {
+    public boolean belongsToSpecies(NetworkChromosome network,double compatibilityThreshold ) {
         return computeDistance(network, 1.0, 1.0, 0.4) < compatibilityThreshold;
     }
 
