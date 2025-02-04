@@ -20,10 +20,10 @@ public class NEAT implements Neuroevolution {
     private final NeatCrossover crossover;
     private int generation;
 
-    public static final double COMPATIBILITY_THRESHOLD = 1.5;
-    public static final double EXCESS_COEFFICIENT = 1.0;
-    public static final double DISJOINT_COEFFICIENT = 1.0;
-    public static final double WEIGHT_COEFFICIENT = 0.4;
+    public static final double COMPATIBILITY_THRESHOLD = 0.3;
+    public static final double EXCESS_COEFFICIENT = 0.5;
+    public static final double DISJOINT_COEFFICIENT = 0.5;
+    public static final double WEIGHT_COEFFICIENT = 0.2;
 
     public NEAT(int populationSize, int maxGenerations, Random random) {
         this.populationSize = Math.max(50, populationSize);
@@ -181,38 +181,12 @@ private void evaluatePopulation() {
             int beforeSize = newPopulation.size();
             
             //System.out.println("  -> Processing Species " + species.hashCode() + " | Current Population: " + beforeSize);
-            
-            if (species.getMembers().isEmpty()) {
-                //System.err.println("WARNING: Species " + species.hashCode() + " is EMPTY before reproduction! Skipping...");
-                continue; // Avoid calling reproduce() on an empty species
-            }else{
-                //System.err.println("Done : Species " + species.hashCode() + " is NOT EMPTY ...");
-
-            }
-        
-            long startTime = System.currentTimeMillis();
             if (speciesList.isEmpty()) {
                 //System.err.println("CRITICAL ERROR: No species exist before reproduction!");
             }
+            species.reproduce(mutation, crossover, newPopulation, populationSize, random);
+
             
-            try {
-                //System.err.println("trying to reproduce");
-                species.reproduce(mutation, crossover, newPopulation, populationSize, random);
-            } catch (Exception e) {
-                //System.err.println("ERROR: Exception in species reproduction for species " + species.hashCode());
-                e.printStackTrace();
-                continue;
-            }
-        
-            long endTime = System.currentTimeMillis();
-            int afterSize = newPopulation.size();
-            
-            //System.out.println("  -> Species " + species.hashCode() + " contributed " + (afterSize - beforeSize) + " offspring.");
-            //System.out.println("  -> Time taken: " + (endTime - startTime) + " ms");
-        
-            if (afterSize == beforeSize) {
-                //System.err.println("WARNING: Species " + species.hashCode() + " did not contribute new offspring!");
-            }
         }
         
         

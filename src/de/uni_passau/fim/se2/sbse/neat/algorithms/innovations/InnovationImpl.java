@@ -25,21 +25,4 @@ public class InnovationImpl implements Innovation {
         return innovationMap.computeIfAbsent(key, k -> innovationNumber++);
     }
 
-    @Override
-    public int hashCode() {
-        return Integer.hashCode(innovationNumber);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        InnovationImpl that = (InnovationImpl) obj;
-        return innovationNumber == that.innovationNumber;
-    }
-
-    @Override
-    public String toString() {
-        return "Innovation{" + "innovationNumber=" + innovationNumber + '}';
-    }
 }

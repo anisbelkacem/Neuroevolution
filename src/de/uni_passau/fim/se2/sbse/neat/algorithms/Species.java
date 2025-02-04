@@ -47,11 +47,6 @@ public class Species {
             NetworkChromosome parent1 = selectParent();
             NetworkChromosome parent2 = selectParent();
     
-            if (parent1 == null || parent2 == null) {
-                //System.err.println("  -> ERROR: Parent selection failed in Species " + this.hashCode());
-                continue;
-            }
-    
             //System.out.println("  -> Selected Parents | P1 Fitness: " + parent1.getFitness() + " | P2 Fitness: " + parent2.getFitness());
             
             //System.out.println("  -> applying crossover");
@@ -60,12 +55,6 @@ public class Species {
             //System.out.println("  ->  crossover done , applying mutation ");
             offspring = mutation.apply(offspring);
             //System.out.println("  -> mutation done ");
-
-    
-            if (offspring == null) {
-                //System.err.println("  -> ERROR: Crossover or mutation failed, offspring is null!");
-                continue;
-            }
     
             newPopulation.add(offspring);
             offspringCount++;
@@ -77,10 +66,6 @@ public class Species {
     
 
     public NetworkChromosome selectParent() {
-        if (members.isEmpty()) {
-            //System.err.println("  -> ERROR: selectParent() called on empty species!");
-            return null;
-        }
     
         double totalFitness = members.stream().mapToDouble(NetworkChromosome::getFitness).sum();
         if (totalFitness <= 0) {
