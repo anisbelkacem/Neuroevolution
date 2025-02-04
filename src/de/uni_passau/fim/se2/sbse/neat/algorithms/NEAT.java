@@ -26,7 +26,7 @@ public class NEAT implements Neuroevolution {
     public static final double WEIGHT_COEFFICIENT = 0.4;
 
     public NEAT(int populationSize, int maxGenerations, Random random) {
-        this.populationSize = Math.max(50, populationSize);
+        this.populationSize = populationSize;
         this.maxGenerations = maxGenerations;
         this.random = random;
         this.speciesList = new ArrayList<>();
