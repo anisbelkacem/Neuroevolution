@@ -71,7 +71,7 @@ public class NetworkGenerator {
         }
 
         while (j < outputSize) {
-            out_Neurons.add(new NeuronGene(inputSize + j, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
+            out_Neurons.add(new NeuronGene(inputSize + j, ActivationFunction.TANH, NeuronType.OUTPUT));
             j++;
         }
     
