@@ -55,10 +55,9 @@ public class Species {
             //System.out.println("  -> Selected Parents | P1 Fitness: " + parent1.getFitness() + " | P2 Fitness: " + parent2.getFitness());
             
             //System.out.println("  -> applying crossover");
-    
+            
             NetworkChromosome offspring = crossover.apply(parent1, parent2);
             //System.out.println("  ->  crossover done , applying mutation ");
-
             offspring = mutation.apply(offspring);
             //System.out.println("  -> mutation done ");
 
