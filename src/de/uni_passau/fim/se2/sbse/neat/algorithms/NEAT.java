@@ -95,6 +95,11 @@ private void evaluatePopulation() {
             agent.setFitness(fitness); // **Update fitness**
             
             //System.out.println("    -> Agent " + agent.hashCode() + " | Prev Fitness: " + previousFitness + " | New Fitness: " + fitness);
+            
+            // **Check if fitness update actually worked**
+            if (agent.getFitness() != fitness) {
+                //System.err.println("🚨 ERROR: Fitness update failed for Agent " + agent.hashCode() + "!");
+            }
 
             totalFitness += fitness;
 
