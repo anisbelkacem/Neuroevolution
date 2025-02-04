@@ -1,4 +1,4 @@
-/*package de.uni_passau.fim.se2.sbse.neat.algorithms;
+package de.uni_passau.fim.se2.sbse.neat.algorithms;
 
 import de.uni_passau.fim.se2.sbse.neat.environments.Environment;
 import de.uni_passau.fim.se2.sbse.neat.environments.XOR;
@@ -57,4 +57,3 @@ class NEATTest {
         assertTrue(neat.getGeneration() > 0, "Mutation and crossover should enable evolutionary progress");
     }
 }
-*/

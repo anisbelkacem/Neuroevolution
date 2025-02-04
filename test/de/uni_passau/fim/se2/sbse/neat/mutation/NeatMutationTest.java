@@ -1,4 +1,4 @@
-/*package de.uni_passau.fim.se2.sbse.neat.mutation;
+package de.uni_passau.fim.se2.sbse.neat.mutation;
 
 import de.uni_passau.fim.se2.sbse.neat.chromosomes.*;
 import de.uni_passau.fim.se2.sbse.neat.algorithms.innovations.Innovation;
@@ -97,4 +97,3 @@ class NeatMutationTest {
                 "A new connection should be added");
     }
 }
-*/
