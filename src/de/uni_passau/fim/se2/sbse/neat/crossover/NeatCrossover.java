@@ -72,6 +72,7 @@ public class NeatCrossover implements Crossover<NetworkChromosome> {
                 inheritedGene.getInnovationNumber()
             ));
         }
+        
 
         Map<Integer, NeuronGene> neuronsMap = new HashMap<>();
         for (NeuronGene neuron : parent1.getLayers().values().stream().flatMap(List::stream).collect(Collectors.toList())) {

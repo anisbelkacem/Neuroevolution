@@ -159,7 +159,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         }
         return false;
     }
-    public NetworkChromosome mutateWeights(NetworkChromosome parent) {
+    /*public NetworkChromosome mutateWeights(NetworkChromosome parent) {
         List<ConnectionGene> updatedConnections = new ArrayList<>();
         for (ConnectionGene connection : parent.getConnections()) {
             double newWeight = connection.getWeight() + (random.nextGaussian() * 0.1);
@@ -172,8 +172,26 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
             ));
         }
         return new NetworkChromosome(parent.getLayers(), updatedConnections);
+    }*/
+    public NetworkChromosome mutateWeights(NetworkChromosome parent) {
+        List<ConnectionGene> updatedConnections = new ArrayList<>();
+        for (ConnectionGene connection : parent.getConnections()) {
+            double weightChange = (random.nextDouble() < 0.8) 
+                ? (random.nextGaussian() * 0.5)  // Larger updates
+                : (random.nextGaussian() * 2.0); // Occasionally make big jumps
+            double newWeight = connection.getWeight() + weightChange;
+            
+            updatedConnections.add(new ConnectionGene(
+                connection.getSourceNeuron(), 
+                connection.getTargetNeuron(), 
+                newWeight, 
+                connection.getEnabled(), 
+                connection.getInnovationNumber()
+            ));
+        }
+        return new NetworkChromosome(parent.getLayers(), updatedConnections);
     }
-
+    
 
     public NetworkChromosome toggleConnection(NetworkChromosome parent) {
         List<ConnectionGene> connections = new ArrayList<>(parent.getConnections());

@@ -192,6 +192,7 @@ public class SinglePoleBalancing implements Environment {
      * @return true if the environment is solved, false otherwise.
      */
     public boolean solved(Agent agent) {
+       //System.out.println("trying to solve" + agent.getFitness() + " comparing to" +  maxSteps * repeats);
         return agent.getFitness() >= maxSteps * repeats;
     }
 

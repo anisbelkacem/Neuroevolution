@@ -10,7 +10,7 @@ import de.uni_passau.fim.se2.sbse.neat.chromosomes.NeuronGene;
  */
 public class InnovationImpl implements Innovation {
 
-    private static int innovationNumber = 1; // Start from 1 to avoid conflicts with default values
+    private static int innovationNumber = 1000;// Start from 1 to avoid conflicts with default values
     private static final Map<String, Integer> innovationMap = new HashMap<>();
 
     /**

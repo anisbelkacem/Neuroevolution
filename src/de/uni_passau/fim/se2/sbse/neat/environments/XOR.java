@@ -82,6 +82,7 @@ public class XOR implements Environment {
 
     @Override
     public boolean solved(Agent agent) {
+        //System.out.println("the error is " + error);
         return error == 0;
     }
 
