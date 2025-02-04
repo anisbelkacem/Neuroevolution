@@ -2,10 +2,15 @@ package de.uni_passau.fim.se2.sbse.neat.algorithms;
 
 import de.uni_passau.fim.se2.sbse.neat.chromosomes.NetworkChromosome;
 import de.uni_passau.fim.se2.sbse.neat.chromosomes.NetworkGenerator;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.NeuronGene;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.NeuronType;
 import de.uni_passau.fim.se2.sbse.neat.environments.Environment;
 import de.uni_passau.fim.se2.sbse.neat.mutation.NeatMutation;
 import de.uni_passau.fim.se2.sbse.neat.crossover.NeatCrossover;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.ActivationFunction;
 import de.uni_passau.fim.se2.sbse.neat.chromosomes.Agent;
+import de.uni_passau.fim.se2.sbse.neat.chromosomes.ConnectionGene;
+
 import java.util.*;
 
 public class NEAT implements Neuroevolution {
@@ -17,8 +22,6 @@ public class NEAT implements Neuroevolution {
     private final NeatMutation mutation;
     private final NeatCrossover crossover;
     private int generation;
-        private double bestFitness = 0;
-    private int stagnationCounter = 0;
 
     public NEAT(int populationSize, int maxGenerations, Random random) {
         this.populationSize = populationSize;
@@ -37,7 +40,7 @@ public class NEAT implements Neuroevolution {
         while (!environment.solved(getBestAgent()) && generation < maxGenerations) {
             evaluatePopulation();
             nextGeneration();
-            System.out.println("Generation " + generation + " Best Fitness: " + getBestAgent().getFitness());
+            //System.out.println("Generation " + generation + " Best Fitness: " + getBestAgent().getFitness());
         }
         return getBestAgent();
     }
@@ -53,19 +56,27 @@ public class NEAT implements Neuroevolution {
             population.add(chromosome);
         }
     }
+    
 
     private void evaluatePopulation() {
+        boolean isComplexTask = !(environment instanceof de.uni_passau.fim.se2.sbse.neat.environments.XOR); 
+    
         Map<NetworkChromosome, Integer> speciesCounts = new HashMap<>();
         for (NetworkChromosome agent : population) {
             double fitness = environment.evaluate(agent);
             agent.setFitness(fitness);
-            speciesCounts.put(agent, speciesCounts.getOrDefault(agent, 0) + 1);
-        }
     
-        for (NetworkChromosome agent : population) {
-            agent.setFitness(agent.getFitness() / speciesCounts.get(agent));  
+            if (isComplexTask) {
+                speciesCounts.put(agent, speciesCounts.getOrDefault(agent, 0) + 1);
+            }
+        }
+        if (isComplexTask) {
+            for (NetworkChromosome agent : population) {
+                agent.setFitness(agent.getFitness() / speciesCounts.get(agent));
+            }
         }
     }
+    
     
 
     private NetworkChromosome selectParent() {
