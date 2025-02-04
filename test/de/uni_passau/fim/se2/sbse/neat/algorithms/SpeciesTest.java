@@ -55,6 +55,17 @@ class SpeciesTest {
 
         species = new Species(chromosome1);
     }
+    @Test
+    void testSelectParentHandlesZeroFitness() {
+        chromosome1.setFitness(0);
+        chromosome2.setFitness(0);
+        species.addMember(chromosome2);
+
+        NetworkChromosome selectedParent = species.selectParent();
+        assertNotNull(selectedParent, "Should still select a parent even with zero fitness");
+        assertTrue(species.getMembers().contains(selectedParent), "Parent should be part of the species");
+    }
+
 
     @Test
     void testInitialization() {
@@ -112,4 +123,26 @@ class SpeciesTest {
         assertNotNull(randomMember, "Randomly selected member should not be null");
         assertTrue(species.getMembers().contains(randomMember), "Selected member should be part of the species");
     }
+    @Test
+    void testReproduceWithOneMember() {
+        List<NetworkChromosome> newPopulation = new ArrayList<>();
+        species.reproduce(mutation, crossover, newPopulation, 10, random);
+
+        assertFalse(newPopulation.isEmpty(), "Reproduction should still work with one member");
+        assertEquals(5, newPopulation.size(), "With one member, reproduction should only copy the best agent");
+    }
+
+    @Test
+    void testReproduceWithZeroFitness() {
+        chromosome1.setFitness(0);
+        chromosome2.setFitness(0);
+        species.addMember(chromosome2);
+
+        List<NetworkChromosome> newPopulation = new ArrayList<>();
+        species.reproduce(mutation, crossover, newPopulation, 10, random);
+
+        assertFalse(newPopulation.isEmpty(), "Reproduction should still produce offspring even with zero fitness");
+    }
+    
+
 }
