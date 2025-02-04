@@ -71,10 +71,9 @@ public class NetworkGenerator {
         }
 
         while (j < outputSize) {
-            out_Neurons.add(new NeuronGene(inputSize + j, ActivationFunction.TANH, NeuronType.OUTPUT));
+            out_Neurons.add(new NeuronGene(inputSize + j, ActivationFunction.SIGMOID, NeuronType.OUTPUT));
             j++;
         }
-        
     
         layersMap.put(0.0, in_Neurons);  
         layersMap.put(1.0, out_Neurons); 
@@ -87,7 +86,7 @@ public class NetworkGenerator {
             if (inputNeuron.getNeuronType() == NeuronType.BIAS) continue; 
             
             for (NeuronGene outputNeuron : out_Neurons) {
-                int innovationNum = InnovationImpl.getInnovationNumber(biasNeuron, outputNeuron); 
+                int innovationNum = InnovationImpl.getInnovationNumber(inputNeuron, outputNeuron); 
                 double weight = random.nextDouble() * 2 - 1;
                 ListOfconnections.add(new ConnectionGene(inputNeuron, outputNeuron, weight, true, innovationNum));
             }

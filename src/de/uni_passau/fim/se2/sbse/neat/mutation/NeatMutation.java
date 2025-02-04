@@ -25,113 +25,70 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
 
     @Override
     public NetworkChromosome apply(NetworkChromosome parent) {
-        //System.out.println("  -> Entering mutation for offspring with ID: " + parent.hashCode());
-    
-        NetworkChromosome original = parent; // Keep a reference for comparison
-        double mutationChance = random.nextDouble();
-    
-        NetworkChromosome mutated;
-        if (mutationChance < 0.25) {
-            //System.out.println("  -> Applying weight mutation...");
-            mutated = mutateWeights(parent);
-        } else if (mutationChance < 0.50) {
-            //System.out.println("  -> Applying toggle connection mutation...");
-            mutated = toggleConnection(parent);
-        } else if (mutationChance < 0.75) {
-            //System.out.println("  -> Applying add connection mutation...");
-            mutated = addConnection(parent);
-        } else {
-            //System.out.println("  -> Applying add neuron mutation...");
-            mutated = addNeuron(parent);
-        }
-    
-        if (mutated.equals(original)) {
-            //System.err.println("  -> WARNING: Mutation did NOT change the network!");
-        } else {
-            //System.out.println("  -> Mutation successful!");
-        }
-    
-        return mutated;
-    }
-    
 
+        double mutationChance = random.nextDouble();
+        if (mutationChance < 0.25) {
+            return mutateWeights(parent);
+        } else if (mutationChance < 0.50) {
+            return toggleConnection(parent);
+        } else if (mutationChance < 0.75) {
+            return addConnection(parent);
+        } else {
+            return addNeuron(parent);
+        }
+    }
 
     private synchronized int getOrCreateInnovationNumber(NeuronGene from, NeuronGene to) {
         return InnovationImpl.getInnovationNumber(from, to);  
     }
 
     public NetworkChromosome addNeuron(NetworkChromosome parent) {
-        //System.out.println("  -> Inside addNeuron mutation for offspring: " + parent.hashCode());
-    
         List<ConnectionGene> existingConnections = new ArrayList<>(parent.getConnections());
-        
-        if (existingConnections.isEmpty()) {
-            //System.err.println("  -> ERROR: No existing connections to mutate in addNeuron!");
-            return parent;
-        }
+        if (existingConnections.isEmpty()) return parent;
     
-        //System.out.println("  -> Existing connections count: " + existingConnections.size());
-    
-        ConnectionGene chosenConnection = null;
-        int maxAttempts = 100;
-        int attempts = 0;
-    
-        while (attempts < maxAttempts) {
+        // Select a random connection, ensuring it's not from/to the bias neuron
+        ConnectionGene chosenConnection;
+        do {
             chosenConnection = existingConnections.get(random.nextInt(existingConnections.size()));
-    
-            if (chosenConnection.getSourceNeuron().getNeuronType() == NeuronType.BIAS ||
-                chosenConnection.getTargetNeuron().getNeuronType() == NeuronType.BIAS) {
-                attempts++;
-                continue;
-            }
-    
-            break;
-        }
-    
-        if (chosenConnection == null || attempts >= maxAttempts) {
-            //System.err.println("  -> CRITICAL ERROR: Failed to select a valid connection for addNeuron() after " + attempts + " attempts!");
-            return parent;
-        }
-    
-        //System.out.println("  -> Splitting connection from " + chosenConnection.getSourceNeuron().getId() +" to " + chosenConnection.getTargetNeuron().getId());
+        } while (chosenConnection.getSourceNeuron().getNeuronType() == NeuronType.BIAS || 
+                 chosenConnection.getTargetNeuron().getNeuronType() == NeuronType.BIAS);
     
         // Disable the chosen connection
         ConnectionGene disabledConnection = new ConnectionGene(
             chosenConnection.getSourceNeuron(),
             chosenConnection.getTargetNeuron(),
             chosenConnection.getWeight(),
-            false,
+            false,  // Disabling the connection
             chosenConnection.getInnovationNumber()
         );
     
-        NeuronGene addedNeuron = new NeuronGene(
-            1000 + random.nextInt(1000), 
-            ActivationFunction.SIGMOID, 
-            NeuronType.HIDDEN
-        );
-    
+        NeuronGene addedNeuron = new NeuronGene(neuronCounter++, ActivationFunction.SIGMOID, NeuronType.HIDDEN);
         int inputToNewInnovation = getOrCreateInnovationNumber(chosenConnection.getSourceNeuron(), addedNeuron);
         int newToOutputInnovation = getOrCreateInnovationNumber(addedNeuron, chosenConnection.getTargetNeuron());
-    
         ConnectionGene inputToNewNeuron = new ConnectionGene(
             chosenConnection.getSourceNeuron(), addedNeuron, chosenConnection.getWeight(), true, inputToNewInnovation
         );
-    
         ConnectionGene newNeuronToOutput = new ConnectionGene(
             addedNeuron, chosenConnection.getTargetNeuron(), 1.0, true, newToOutputInnovation
         );
-    
+      
         List<ConnectionGene> updatedConnections = new ArrayList<>(parent.getConnections());
         updatedConnections.remove(chosenConnection);
         updatedConnections.add(disabledConnection);
         updatedConnections.add(inputToNewNeuron);
         updatedConnections.add(newNeuronToOutput);
     
-        //System.out.println("  -> New neuron added successfully between " +chosenConnection.getSourceNeuron().getId() + " and " + chosenConnection.getTargetNeuron().getId());
+        double sourceLayer = -1, targetLayer = -1;
+        for (Map.Entry<Double, List<NeuronGene>> entry : parent.getLayers().entrySet()) {
+            if (entry.getValue().contains(chosenConnection.getSourceNeuron())) sourceLayer = entry.getKey();
+            if (entry.getValue().contains(chosenConnection.getTargetNeuron())) targetLayer = entry.getKey();
+        }
+        double newLayer = (sourceLayer + targetLayer) / 2; 
+        Map<Double, List<NeuronGene>> updatedLayers = new HashMap<>(parent.getLayers());
+        updatedLayers.computeIfAbsent(newLayer, k -> new ArrayList<>()).add(addedNeuron);
     
-        return new NetworkChromosome(parent.getLayers(), updatedConnections);
+        return new NetworkChromosome(updatedLayers, updatedConnections);
     }
-    
     
 
     public NetworkChromosome addConnection(NetworkChromosome parent) {
@@ -220,8 +177,8 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
         List<ConnectionGene> updatedConnections = new ArrayList<>();
         for (ConnectionGene connection : parent.getConnections()) {
             double weightChange = (random.nextDouble() < 0.9) 
-                ? (random.nextGaussian() * 1.0)  // Larger updates
-                : (random.nextGaussian() * 3.0); // Occasionally make big jumps
+                ? (random.nextGaussian() * 0.7)  // Larger updates
+                : (random.nextGaussian() * 2.5); // Occasionally make big jumps
             double newWeight = connection.getWeight() + weightChange;
             
             updatedConnections.add(new ConnectionGene(
