@@ -20,13 +20,13 @@ public class NEAT implements Neuroevolution {
     private final NeatCrossover crossover;
     private int generation;
 
-    public static final double COMPATIBILITY_THRESHOLD = 0.3;
-    public static final double EXCESS_COEFFICIENT = 0.5;
-    public static final double DISJOINT_COEFFICIENT = 0.5;
-    public static final double WEIGHT_COEFFICIENT = 0.1;
+    public static final double COMPATIBILITY_THRESHOLD = 1.5;
+    public static final double EXCESS_COEFFICIENT = 1.0;
+    public static final double DISJOINT_COEFFICIENT = 1.0;
+    public static final double WEIGHT_COEFFICIENT = 0.4;
 
     public NEAT(int populationSize, int maxGenerations, Random random) {
-        this.populationSize = Math.min(50, populationSize);
+        this.populationSize = Math.max(50, populationSize);
         this.maxGenerations = maxGenerations;
         this.random = random;
         this.speciesList = new ArrayList<>();

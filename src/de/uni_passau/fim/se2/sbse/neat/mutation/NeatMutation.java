@@ -27,7 +27,7 @@ public class NeatMutation implements Mutation<NetworkChromosome> {
     public NetworkChromosome apply(NetworkChromosome parent) {
 
         double mutationChance = random.nextDouble();
-        if (mutationChance < 0.8) {
+        if (mutationChance < 1) {
         return mutateWeights(parent);}
         else return parent;
         //return toggleConnection(parent);
